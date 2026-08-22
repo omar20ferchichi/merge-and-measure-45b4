@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "merge-and-measure-45b4",
+    "slug": "merge-and-measure-45b4",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "android": {
+      "package": "com.gamefactory.mergeandmeasure45b4",
+      "versionCode": 1
+    }
+  }
+}
