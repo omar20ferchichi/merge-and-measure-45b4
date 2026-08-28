@@ -1,67 +1,41 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Modal, StyleSheet, ActivityIndicator } from 'react-native';
-import { useGameContext } from '../../context/GameContext';
-import { randomEventOptions } from '../../data/randomEvents';
+import React from 'react';
+import { View, Text, StyleSheet, Modal, Alert } from 'react-native';
+import { useGameContext } from '../context/GameContext';
 
 const RandomEventModal: React.FC = () => {
-  const { handleRandomEvent, isRandomEventActive, setIsRandomEventActive } = useGameContext();
-  const [selectedOption, setSelectedOption] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const { triggerRandomEvent, handleEventEffect } = useGameContext();
+  const [visible, setVisible] = React.useState(false);
 
-  useEffect(() => {
-    if (isRandomEventActive) {
-      setIsLoading(true);
-      const timer = setTimeout(() => {
-        setIsLoading(false);
-      }, 1500);
-
-      return () => clearTimeout(timer);
+  const handleTriggerEvent = () => {
+    const event = triggerRandomEvent();
+    if (event) {
+      setVisible(true);
     }
-  }, [isRandomEventActive]);
-
-  const handleOptionSelect = (option: string) => {
-    setSelectedOption(option);
   };
 
   const handleConfirm = () => {
-    if (selectedOption) {
-      setIsLoading(true);
-      handleRandomEvent(selectedOption);
-      setIsRandom
-    }
+    handleEventEffect(event.effect);
+    setVisible(false);
   };
 
   return (
     <Modal
+      visible={visible}
       transparent={true}
-      visible={isRandomEventActive}
       animationType="slide"
     >
       <View style={styles.modalContainer}>
         <View style={styles.modalContent}>
           <Text style={styles.modalTitle}>Random Event!</Text>
-          <Text style={styles.modalDescription}>
-            {isLoading ? 'Processing event...' : 'A random event has occurred. Choose your action:'}
-          </Text>
-          {randomEventOptions.map((option) => (
-            <TouchableOpacity
-              key={option.id}
-              style={styles.optionButton}
-              onPress={() => handleOptionSelect(option.id)}
-            >
-              <Text style={styles.optionText}>{option.text}</Text>
+          <Text style={styles.modalDescription}>{event.description}</Text>
+          <View style={styles.modalButtons}>
+            <TouchableOpacity style={styles.modalButton} onPress={handleConfirm}>
+              <Text style={styles.modalButtonText}>Confirm</Text>
             </TouchableOpacity>
-          ))}
-          {isLoading && (
-            <ActivityIndicator size="large" color="#0000ff" style={styles.loadingIndicator} />
-          )}
-          <TouchableOpacity
-            style={styles.confirmButton}
-            onPress={handleConfirm}
-            disabled={isLoading || !selectedOption}
-          >
-            <Text style={styles.confirmButtonText}>Confirm</Text>
-          </TouchableOpacity>
+            <TouchableOpacity style={styles.modalButton} onPress={() => setVisible(false)}>
+              <Text style={styles.modalButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </View>
     </Modal>
@@ -73,51 +47,46 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0,0,0,0.5)',
   },
   modalContent: {
     width: '80%',
     backgroundColor: '#fff',
     borderRadius: 10,
     padding: 20,
-    alignItems: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
   },
   modalTitle: {
-    fontSize: 24,
+    fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 15,
+    marginBottom: 10,
+    textAlign: 'center',
   },
   modalDescription: {
     fontSize: 16,
     marginBottom: 20,
     textAlign: 'center',
   },
-  optionButton: {
-    width: '100%',
-    paddingVertical: 12,
-    marginBottom: 10,
-    backgroundColor: '#f0f0f0',
-    borderRadius: 5,
-    alignItems: 'center',
-  },
-  optionText: {
-    fontSize: 16,
-  },
-  confirmButton: {
-    width: '100%',
-    paddingVertical: 12,
-    backgroundColor: '#007bff',
-    borderRadius: 5,
-    alignItems: 'center',
-  },
-  confirmButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  loadingIndicator: {
+  modalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
     marginTop: 20,
   },
+  modalButton: {
+    padding: 10,
+    borderRadius: 5,
+    backgroundColor: '#007bff',
+    width: '45%',
+  },
+  modalButtonText: {
+    color: '#fff',
+    textAlign: 'center',
+    fontWeight: 'bold',
+  }
 });
 
 export default RandomEventModal;
