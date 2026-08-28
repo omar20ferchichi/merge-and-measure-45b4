@@ -1,48 +1,79 @@
-import { AdMobRewarded, AdMobInterstitial } from 'expo-ads-admob';
 import { useEffect, useState } from 'react';
-import { Platform } from 'react-native';
-import { AdManager } from './types';
+import { AdMob, AdType } from '@react-native-firebase/admob';
+import { AdsOverlay } from './AdsOverlay';
+import { AnalyticsService } from './AnalyticsService';
 
-const AdManager: AdManager = {
-  init: async () => {
-    if (Platform.OS === 'android') {
-      await AdMobRewarded.setAdUnitID('ca-app-pub-3940256099932292/5224354917');
-      await AdMobInterstitial.setAdUnitID('ca-app-pub-3940256099932292/1033173802');
-    } else {
-      await AdMobRewarded.setAdUnitID('ca-app-pub-3940256099932292/5224354917');
-      await AdMobInterstitial.setAdUnitID('ca-app-pub-3940256099932392/1033173802');
-    }
-    await AdMobRewarded.requestAd();
-    await AdMobInterstitial.requestAd();
-  },
+export interface AdConfig {
+  adUnitId: string;
+  type: AdType;
+  rewardAmount?: number;
+}
 
-  showRewardedAd: async () => {
-    try {
-      const rewarded = await AdMobRewarded.showAd();
-      if (rewarded) {
-        console.log('Rewarded ad completed');
-        return true;
+export class AdManager {
+  private adUnits: Map<string, AdConfig> = new Map();
+  private ads: Map<string, any> = new Map();
+  private isAdLoaded: boolean = false;
+
+  constructor(private adUnitIds: AdConfig[]) {
+    this.initializeAds();
+  }
+
+  private initializeAds(): void {
+    this.adUnitIds.forEach((config) => {
+      this.adUnits.set(config.adUnitId, config);
+      this.ads.set(config.adUnitId, AdMob.getInstance().rewardedAd(config.adUnitId));
+    });
+  }
+
+  public loadAds(): void {
+    this.isAdLoaded = false;
+    this.adUnits.forEach((config, adUnitId) => {
+      const ad = this.ads.get(adUnitId);
+      if (ad) {
+        ad.load();
+        ad.on('adLoaded', () => {
+          this.isAdLoaded = true;
+          AnalyticsService.logEvent('ad_interstitial_shown');
+        });
       }
-      return false;
-    } catch (error) {
-      console.error('Failed to show rewarded ad', error);
-      return false;
-    }
-  },
+    });
+  }
 
-  showInterstitialAd: async () => {
-    try {
-      const interstitial = await AdMobInterstitial.showAd();
-      if (interstitial) {
-        console.log('Interstitial ad completed');
-        return true;
-      }
-      return false;
-    } catch (error) {
-      console.error('Failed to show interstitial ad', error);
-      return false;
+  public showAd(adUnitId: string): void {
+    const ad = this.ads.get(adUnitId);
+    if (ad && this.isAdLoaded) {
+      ad.show();
+      ad.on('adClosed', () => {
+        this.loadAds();
+      });\n    }
+  }
+
+  public showRewardedAd(adUnitId: string): void {
+    const ad = this.ads.get(adUnitId);
+    if (ad && this.isAdLoaded) {
+      ad.show();
+      ad.on('rewarded', (reward) => {
+        AnalyticsService.logEvent('ad_rewarded', { rewardAmount: reward.amount });
+      });
     }
   }
-};
 
-export default AdManager;
+  public getAdUnitId(adType: AdType): string {
+    const adUnit = this.adUnits.find(config => config.type === adType);
+    return adUnit?.adUnitId || '';
+  }
+
+  public getAds(): Map<string, any> {
+    return this.ads;
+  }
+
+  public isAdLoaded(): boolean {
+    return this.isAdLoaded;
+  }
+
+  public renderAds(): JSX.Element {
+    return (
+      <AdsOverlay />
+    );
+  }
+}
