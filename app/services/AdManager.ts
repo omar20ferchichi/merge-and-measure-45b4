@@ -1,104 +1,48 @@
-import { useEffect, useState } from 'react';
 import { AdMobRewarded, AdMobInterstitial } from 'expo-ads-admob';
+import { useEffect, useState } from 'react';
 import { Platform } from 'react-native';
-import { AdManagerConfig } from './types';
+import { AdManager } from './types';
 
-export interface AdManagerProps {
-  rewardedAdUnitId: string;
-  interstitialAdUnitId: string;
-  onReward?: (rewardAmount: number) => void;
-  onAdFailed?: () => void;
-  onAdLoaded?: () => void;
-}
-
-export class AdManager {
-  private rewardedAd: AdMobRewarded | null = null;
-  private interstitialAd: AdMobInterstitial | null = null;
-  private config: AdManagerConfig;
-
-  constructor(config: AdManagerConfig) {
-    this.config = config;
-  }
-
-  async init() {
-    if (Platform.OS === 'ios') {
-      await AdMobRewarded.setApplicationIdAsync(this.config.rewardedAdUnitId);
-      await AdMobInterstitial.setApplicationIdAsync(this.config.interstitialAdUnitId);
+const AdManager: AdManager = {
+  init: async () => {
+    if (Platform.OS === 'android') {
+      await AdMobRewarded.setAdUnitID('ca-app-pub-3940256099932292/5224354917');
+      await AdMobInterstitial.setAdUnitID('ca-app-pub-3940256099932292/1033173802');
     } else {
-      await AdMobRewarded.setApplicationIdAsync(this.config.rewardedAdUnitId);
-      await AdMobInterstitial.setApplicationIdAsync(this.config.interstitialAdUnitId);
+      await AdMobRewarded.setAdUnitID('ca-app-pub-3940256099932292/5224354917');
+      await AdMobInterstitial.setAdUnitID('ca-app-pub-3940256099932392/1033173802');
     }
-  }
+    await AdMobRewarded.requestAd();
+    await AdMobInterstitial.requestAd();
+  },
 
-  async loadRewardedAd() {
-    this.rewardedAd = await AdMobRewarded.createRewardedAdAsync({
-      adUnitId: this.config.rewardedAdUnitId,
-      serveUrl: this.config.serveUrl,
-    });
-    this.rewardedAd.onDidFailLoadAd(() => {
-      if (this.config.onAdFailed) {
-        this.config.onAdFailed();
-      }
-    });
-    this.rewardedAd.onAdLoaded(() => {
-      if (this.config.onAdLoaded) {
-        this.config.onNone();
-      }
-    });
-  }
-
-  async showRewardedAd() {
-    if (!this.rewardedAd) {
-      console.error('Rewarded ad not loaded');
-      return;
-    }
+  showRewardedAd: async () => {
     try {
-      const result = await this.rewardedAd.show();
-      if (result && result.rewardAmount) {
-        if (this.config.onReward) {
-          this.config.onReward(result.rewardAmount);
-        }
+      const rewarded = await AdMobRewarded.showAd();
+      if (rewarded) {
+        console.log('Rewarded ad completed');
+        return true;
       }
+      return false;
     } catch (error) {
       console.error('Failed to show rewarded ad', error);
+      return false;
     }
-  }
+  },
 
-  async loadInterstitialAd() {
-    this.interstitialAd = await AdMobInterstitial.createInterstitialAdAsync({
-      adUnitId: this.config.interstitialAdUnitId,
-      serveUrl: this.config.serveUrl,
-    });
-    this.interstitialAd.onDidFailLoadAd(() => {
-      if (this.config.onAdFailed) {
-        this.config.onAdFailed();
-      }
-    });
-    this.interstitialAd.onAdLoaded(() => {
-      if (this.config.onAdLoaded) {
-        this.config.onAdLoaded();
-      }
-    });
-  }
-
-  async showInterstitialAd() {
-    if (!this.interstitialAd) {
-      console.error('Interstitial ad not loaded');
-      return;
-    }
+  showInterstitialAd: async () => {
     try {
-      await this.interstitialAd.show();
+      const interstitial = await AdMobInterstitial.showAd();
+      if (interstitial) {
+        console.log('Interstitial ad completed');
+        return true;
+      }
+      return false;
     } catch (error) {
       console.error('Failed to show interstitial ad', error);
+      return false;
     }
   }
+};
 
-  async dispose() {
-    if (this.rewardedAd) {
-      await this.rewardedAd.unload();
-    }
-    if (this.interstitialAd) {
-      await this.interstitialAd.unload();
-    }
-  }
-}
+export default AdManager;
