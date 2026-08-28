@@ -1,44 +1,65 @@
-import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { useMergeContext } from '../context/MergeContext';
 
-interface ProgressTrackerProps {
-  progress: number;
-}
+const ProgressTracker: React.FC = () => {
+  const { mergeCount, level, setLevel } = useMergeContext();
 
-const ProgressTracker: React.FC<ProgressTrackerProps> = ({ progress }) => {
+  const handleLevelUp = () => {
+    setLevel(prevLevel => prevLevel + 1);
+  };
+
   return (
-    <View style={styles.progressContainer}>
-      <Text style={styles.progressText}>{progress}% Complete</Text>
-      <View style={styles.progressBarContainer}>
-        <View style={[styles.progressBar, { width: `${progress}%` }]} />
+    <View style={styles.container}>
+      <View style={styles.mergeCountContainer}>
+        <Text style={styles.mergeCountText}>Merges: {mergeCount}</Text>
+      </View>
+      <View style={styles.levelContainer}>
+        <Text style={styles.levelText}>Level {level}</Text>
+        <TouchableOpacity style={styles.levelUpButton} onPress={handleLevelUp}>
+          <Text style={styles.levelUpButtonText}>Level Up!</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  progressContainer: {
-    flexDirection: 'column',
+  container: {
+    flex: 1,
+    justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 10,
+    padding: 20,
   },
-  progressText: {
-    fontSize: 16,
+  mergeCountContainer: {
+    marginBottom: 20,
+  },
+  mergeCountText: {
+    fontSize: 24,
+    fontWeight: 'bold',
     color: '#333',
   },
-  progressBarContainer: {
-    width: '100%',
-    height: 10,
-    backgroundColor: '#e0e0e0',
-    borderRadius: 5,
-    overflow: 'hidden',
-    marginTop: 5,
+  levelContainer: {
+    alignItems: 'center',
   },
-  progressBar: {
-    height: '100%',
-    backgroundColor: '#007AFF',
-    borderRadius: 5,
+  levelText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#555',
+    marginBottom: 10,
+  },
+  levelUpButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+    elevation: 3,
+  },
+  levelUpButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 
-export { ProgressTracker };
+export default ProgressTracker;
