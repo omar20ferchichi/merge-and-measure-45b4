@@ -1,41 +1,47 @@
-import React from 'react';
-import { View, Text, StyleSheet, Modal, Alert } from 'react-native';
-import { useGameContext } from '../context/GameContext';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, ActivityIndicator } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import RandomEventCard from './RandomEventCard';
 
-const RandomEventModal: React.FC = () => {
-  const { triggerRandomEvent, handleEventEffect } = useGameContext();
-  const [visible, setVisible] = React.useState(false);
-
-  const handleTriggerEvent = () => {
-    const event = triggerRandomEvent();
-    if (event) {
-      setVisible(true);
-    }
+interface RandomEventModalProps {
+  isVisible: boolean;
+  event: {
+    id: string;
+    title: string;
+    description: string;
+    effect: string;
+    type: 'bonus' | 'challenge' | 'reset';
+    duration?: number;
   };
+  onClose: () => void;
+  onConfirm: () => void;
+  isLoading: boolean;
+}
 
-  const handleConfirm = () => {
-    handleEventEffect(event.effect);
-    setVisible(false);
-  };
+const RandomEventModal: React.FC<RandomEventModalProps> = ({ isVisible, event, onClose, onConfirm, isLoading }) => {
+  const [showCard, setShowCard] = useState(false);
 
   return (
     <Modal
-      visible={visible}
-      transparent={true}
       animationType="slide"
+      transparent={true}
+      visible={isVisible}
+      onRequestClose={on
     >
       <View style={styles.modalContainer}>
-        <View style={styles.modalContent}>
-          <Text style={styles.modalTitle}>Random Event!</Text>
-          <Text style={styles.modalDescription}>{event.description}</Text>
-          <View style={styles.modalButtons}>
-            <TouchableOpacity style={styles.modalButton} onPress={handleConfirm}>
-              <Text style={styles.modalButtonText}>Confirm</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.modalButton} onPress={() => setVisible(false)}>
-              <Text style={styles.modalButtonText}>Cancel</Text>
+        <View style={styles.cardContainer}>
+          <View style={styles.headerContainer}>
+            <Text style={styles.title}>{event.title}</Text>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <Ionicons name="close-circle-outline" size={24} color="gray" />
             </TouchableOpacity>
           </View>
+          <Text style={styles.description}>{event.description}</Text>
+          <Text style={styles.effect}>{event.effect}</Text>
+          {event.type === 'reset' && <Text style={styles.resetNote}>This event will reset your progress.</Text>}
+          <TouchableOpacity style={styles.confirmButton} onPress={onConfirm} disabled={isLoading}>
+            <Text style={styles.confirmButtonText}>{isLoading ? <ActivityIndicator size="small" color="white" /> : 'Confirm'}</Text>
+          </TouchableOpacity>
         </View>
       </View>
     </Modal>
@@ -47,46 +53,60 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
-  modalContent: {
-    width: '80%',
-    backgroundColor: '#fff',
-    borderRadius: 10,
+  cardContainer: {
+    width: '90%',
+    maxWidth: 400,
     padding: 20,
+    backgroundColor: 'white',
+    borderRadius: 10,
     elevation: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3,
   },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 10,
-    textAlign: 'center',
-  },
-  modalDescription: {
-    fontSize: 16,
-    marginBottom: 20,
-    textAlign: 'center',
-  },
-  modalButtons: {
+  headerContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 20,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
   },
-  modalButton: {
-    padding: 10,
-    borderRadius: 5,
-    backgroundColor: '#007bff',
-    width: '45%',
-  },
-  modalButtonText: {
-    color: '#fff',
-    textAlign: 'center',
+  title: {
+    fontSize: 22,
     fontWeight: 'bold',
-  }
+    color: '#333',
+  },
+  description: {
+    fontSize: 16,
+    color: '#555',
+    marginBottom: 10,
+  },
+  effect: {
+    fontSize: 16,
+    color: '#333',
+    marginBottom: 10,
+  },
+  resetNote: {
+    fontSize: 14,
+    color: '#ff4444',
+    marginBottom: 15,
+  },
+  confirmButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 12,
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  confirmButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  closeButton: {
+    padding: 5,
+  },
 });
 
 export default RandomEventModal;
