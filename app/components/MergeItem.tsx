@@ -1,133 +1,119 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
-import { mergeItem } from '../../services/gameService';
-import { useMergeContext } from '../../context/MergeContext';
+import React, { useState, useRef, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, Animated } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { mergeItem } from '../services/mergeService';
+
+const { width } = Dimensions.get('window');
 
 interface MergeItemProps {
-  id: string;
-  name: string;
-  value: number;
-  imageUrl: string;
-  selected?: boolean;
+  item: { 
+    id: string;
+    type: string;
+    value: number;
+    image: string;
+    position: { x: number; y: number };
+    onMerge: (id: string) => void;
+  };
 }
 
-const MergeItem: React.FC<MergeItemProps> = ({ id, name, value, imageUrl, selected = false }) => {
-  const { selectedItems, setSelectedItems, onMerge } = useMergeContext();
-  const [isSelected, setIsSelected] = useState(selected);
+const MergeItem: React.FC<MergeItemProps> = ({ item, onMerge }) => {
+  const [isDragging, setIsDragging] = useState(false);
+  const [isMerged, setIsMerged] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const dragPosition = useRef(new Animated.ValueXY({ x: 0, y: 0 }));
+
+  const handlePress = () => {
+    setIsDragging(true);
+    dragPosition.current.setValue({ x: item.position.x, y: item.position.y });
+  };
+
+  const handleMove = (event: any) => {
+    if (!isDragging) return;
+    const { touchX, touchY } = event.nativeEvent;
+    const newX = touchX - item.position.x;
+    const newY = touchY - item.position.y;
+    setDragOffset({ x: newX, y: newY });
+    dragPosition.current.setValue({ x: newX,  y: newY });
+  };
+
+  const handleRelease = () => {
+    setIsDragging(false);
+    setIsMerged(true);
+    onMerge(item.id);
+  };
 
   useEffect(() => {
-    setIsSelected(selected);
-  }, [selected]);
-
-  const toggleSelection = () => {
-    setIsSelected(!isSelected);
-    setSelectedItems(prev => {
-      const newItems = [...prev];
-      const itemIndex = newItems.findIndex(item => item.id === id);
-      if (itemIndex !== -1) {
-        newItems.splice(itemIndex, 1);
-      } else {
-        newItems.push({ id, name, value });
+    const subscription = dragPosition.current.addListener(({ value }) => {
+      if (isDragging) {
+        setDragOffset({ x: value.x, y: value.y });
       }
-      return new
     });
-  };
-
-  const handleMerge = () => {
-    onMerge(id);
-  };
+    return () => subscription.remove();
+  }, [isDragging]);
 
   return (
-    <TouchableOpacity
-      style={styles.itemContainer}
-      onPress={toggleSelection}
+    <Animated.View
+      style={[styles.itemContainer, {
+        transform: dragPosition.current.getTranslateTransform(),
+      }]}
     >
-      <View style={styles.imageContainer}>
-        <Image source={{ uri: imageUrl }} style={styles.image} />
-      </View>
-      <View style={styles.infoContainer}>
-        <Text style={styles.name}>{name}</Text>
-        <Text style={styles.value}>Value: {value}</Text>
-      </View>
-      {isSelected && (
-        <View style={styles.selectedIndicator}>
-          <Text style={styles.selectedText}>Selected</Text>
-        </View>
-      )}
       <TouchableOpacity
-        style={styles.mergeButton}
-        onPress={handleMerge}
-        disabled={!isSelected}
+        onPress={handlePress}
+        onMoveShouldSetResponder={() => isDragging}
+        onMove={handleMove}
+        onRelease={handleRelease}
       >
-        <Text style={styles.mergeButtonText}>Merge</Text>
+        <View style={styles.itemCard}>
+          <Image source={{ uri: item.image }} style={styles.itemImage} />
+          <Text style={styles.itemValue}>{item.value}</Text>
+          <Text style={styles.itemType}>{item.type}</Text>
+          <Ionicons name="ios-arrow-forward" size={24} color="white" />
+        </View>
       </TouchableOpacity>
-    </TouchableOpacity>
+    </Animated.View>
   );
 };
 
 const styles = StyleSheet.create({
   itemContainer: {
-    flexDirection: 'row',
+    position: 'absolute',
+    width: 100,
+    height: 100,
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    borderRadius: 15,
+    justifyContent: 'center',
     alignItems: 'center',
-    padding: 10,
-    marginVertical: 5,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 5,
-    elevation: 3,
+    zIndex: 10,
   },
-  imageContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    overflow: 'hidden',
-    marginRight: 10,
-  },
-  image: {
+  itemCard: {
     width: '100%',
     height: '100%',
-    resizeMode: 'cover',
+    backgroundColor: 'white',
+    borderRadius: 15,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
   },
-  infoContainer: {
-    flex: 1,
+  itemImage: {
+    width: 60,
+    height: 60,
+    borderRadius: 10,
+    marginBottom: 10,
   },
-  name: {
-    fontSize: 16,
+  itemValue: {
+    fontSize: 20,
     fontWeight: 'bold',
+    color: 'black',
     marginBottom: 5,
   },
-  value: {
+  itemType: {
     fontSize: 14,
-    color: '#555',
-  },
-  selectedIndicator: {
-    position: 'absolute',
-    right: 10,
-    top: 10,
-    backgroundColor: 'green',
-    borderRadius: 10,
-    padding: 5,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  selectedText: {
-    color: '#fff',
-    fontWeight: 'bold',
-  },
-  mergeButton: {
-    backgroundColor: '#007BFF',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 5,
-    marginLeft: 10,
-  },
-  mergeButtonText: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: 'bold',
+    color: 'gray',
+    marginBottom: 10,
   },
 });
 
