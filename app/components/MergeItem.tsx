@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Animated, Easing } from 'react-native';
-import { useMergeContext } from '../context/MergeContext';
+import { View, StyleSheet, Animated, Easing } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 interface MergeItemProps {
   id: string;
@@ -8,87 +8,83 @@ interface MergeItemProps {
   onMerge: (id: string) => void;
   onDragStart: (id: string) => void;
   onDragEnd: (id: string) => void;
+  isMerging: boolean;
+  mergeTarget: number;
+  mergeProgress: number;
 }
 
-const MergeItem: React.FC<MergeItemProps> = ({ id, value, onMerge, onDragStart, onDragEnd }) => {
-  const { selectedItems, setSelectedItems, mergedItems, setMergedItems } = useMergeContext();
-  const [isDragging, setIsDragging] = useState(false);
-  const [scale] = useState(new Animated.Value(1));
-  const dragRef = useRef<Animated.Value>(new Animated.Value(0));
+const MergeItem: React.FC<MergeItemProps> = ({
+  id,
+  value,
+  onMerge,
+  onDragStart,
+  onDragEnd,
+  isMerging,
+  mergeTarget,
+  mergeProgress,
+}) => {
+  const scale = useRef(new Animated.Value(1)).current;
+  const opacity = useRef(new Animated.Value(1)).current;
+  const translateX = useRef(new Animated.Value(0)).current;
+  const translateY = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
-    const handleDragStart = () => {
-      setIsDragging(true);
-      onDragStart(id);
-      Animated.timing(dragRef.current, {
-        toValue: 1,
-        duration: 200,
-        easing: Easing.linear,
-        useNativeDriver: false
-      }).start();
-    };
-
-    const handleDragEnd = () => {
-      setIsDragging(false);
-      onDragEnd(id);
-      Animated.timing(dragRef.current, {
-        toValue: 0,
-        duration: 200,
-        easing: Easing.linear,
-        useNativeDriver: false
-      }).start();
-    };
-
-    return () => {
-      Animated.timing(dragRef.current, {
-        toValue: 0,
-        duration: 200,
-        easing: Easing.linear,
-        useNativeDriver: false
-      }).start();
-    };
-  }, [id, onDragStart, onDragEnd]);
-
-  const handlePress = () => {
-    if (isDragging) return;
-    if (selectedItems.includes(id)) {
-      setSelectedItems(selectedItems.filter(item => item !== id));
-    } else {
-      setSelectedItems([...selectedItems, id]);
+    if (isMerging) {
+      Animated.sequence([
+        Animated.timing(scale, {
+          toValue: 1.2,
+          duration: 200,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 0.5,
+          duration: 200,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateX, {
+          toValue: 10,
+          duration: 200,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+        Animated.timing(translateY, {
+          toValue: -10,
+          duration: 200,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+      ]).start();
     }
-  };
-
-  const handleMerge = () => {
-    if (selectedItems.length >= 2) {
-      const mergedValue = selectedItems.reduce((sum, itemId) => sum + mergedItems[itemId], 0);
-      setMergedItems(prev => ({
-        ...prev,
-        [id]: mergedValue
-      }));
-      setSelectedItems([]);
-      onMerge(id);
-    }
-  };
+  }, [isMerging]);
 
   return (
-    <TouchableOpacity
-      onPress={handlePress}
-      style={styles.itemContainer}
+    <Animated.View
+      style={[
+        styles.itemContainer,
+        {
+          transform: [
+            { scale },
+            { translateX },
+            { translateY },
+          ],
+          opacity,
+        },
+      ]}
     >
-      <Animated.View style={{ transform: [{ translateY: dragRef.current }] }}>
-        <View style={styles.itemCard}>
+      <View style={styles.itemContent}>
+        <Ionicons
+          name="ios-rocket"
+          size={32}
+          color="blue"
+        />
+        <View style={styles.itemValueContainer}>
           <Text style={styles.itemValue}>{value}</Text>
+          <Text style={styles.itemTarget}>{mergeTarget}</Text>
         </View>
-      </Animated.View>
-      {selectedItems.includes(id) && (
-        <TouchableOpacity
-          onPress={handleMerge}
-          style={styles.mergeButton}
-        >
-          <Text style={styles.mergeButtonText}>Merge</Text>
-        </TouchableOpacity>
-      )}
-    </TouchableOpacity>
+      </View>
+    </Animated.View>
   );
 };
 
@@ -96,42 +92,35 @@ const styles = StyleSheet.create({
   itemContainer: {
     width: 80,
     height: 80,
-    margin: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderRadius: 16,
     backgroundColor: '#f0f0f0',
-    borderRadius: 10,
-    elevation: 2,
-  },
-  itemCard: {
-    width: 60,
-    height: 60,
-    backgroundColor: '#ffffff',
-    borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 1,
+    margin: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  itemContent: {
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  itemValueContainer: {
+    marginTop: 10,
+    alignItems: 'center',
   },
   itemValue: {
     fontSize: 24,
     fontWeight: 'bold',
+    color: '#333',
   },
-  mergeButton: {
-    position: 'absolute',
-    bottom: 0,
-    width: '100%',,
-    height: 30,
-    backgroundColor: '#4CAF50',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 5,
-    elevation: 1,
-  },
-  mergeButtonText: {
-    color: 'white',
+  itemTarget: {
     fontSize: 14,
-    fontWeight: 'bold',
-  }
+    color: '#666',
+  },
 });
 
 export default MergeItem;
