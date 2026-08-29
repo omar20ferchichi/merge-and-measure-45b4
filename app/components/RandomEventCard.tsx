@@ -1,52 +1,109 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, Alert } from 'react-native';
-import { useGameContext } from '../context/GameContext';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, ActivityIndicator } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
-const RandomEventCard: React.FC = () => {
-  const { triggerRandomEvent, handleEventEffect } = useGameContext();
-
-  const handleTriggerEvent = () => {
-    const event = triggerRandomEvent();
-    if (event) {
-      Alert.alert(
-        'Random Event!',
-        event.description,
-        [
-          {
-            text: 'OK',
-            onPress: () => handleEventEffect(event.effect)
-          }
-        ]
-      );
-    }
+interface RandomEventCardProps {
+  isVisible: boolean;
+  event: {
+    id: string;
+    title: string;
+    description: string;
+    effect: string;
+    type: 'bonus' | 'challenge' | 'reset';
+    duration?: number;
   };
+  onClose: () => void;
+  onConfirm: () => void;
+  isLoading: boolean;
+}
 
+const RandomEventCard: React.FC<RandomEventCardProps> = ({ isVisible, event, onClose, onConfirm, isLoading }) => {
   return (
-    <TouchableOpacity style={styles.card} onPress={handleTriggerEvent}>
-      <Text style={styles.cardText}>Trigger Random Event</Text>
-    </TouchableOpacity>
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={isVisible}
+      onRequestClose={onClose}
+    >
+      <View style={styles.modalContainer}>
+        <View style={styles.cardContainer}>
+          <View style={styles.headerContainer}>
+            <Text style={styles.title}>{event.title}</Text>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <Ionicons name="close-circle-outline" size={24} color="gray" />
+            </TouchableOpacity>
+          </View>
+          <Text style={styles.description}>{event.description}</Text>
+          <Text style={styles.effect}>{event.effect}</Text>
+          {event.type === 'reset' && <Text style={styles.resetNote}>This event will reset your progress.</Text>}
+          <TouchableOpacity style={styles.confirmButton} onPress={onConfirm} disabled={isLoading}>
+            <Text style={styles.confirmButtonText}>{isLoading ? <ActivityIndicator size="small" color="white" /> : 'Confirm'}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: '#f0f0f0',
-    padding: 15,
-    borderRadius: 10,
-    margin: 10,
-    alignItems: 'center',
+  modalContainer: {
+    flex: 1,
     justifyContent: 'center',
-    elevation: 3,
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
+  cardContainer: {
+    width: '90%',
+    maxWidth: 400,
+    padding: 20,
+    backgroundColor: 'white',
+    borderRadius: 10,
+    elevation: 5,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 3,
   },
-  cardText: {
-    fontSize: 16,
+  headerContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 15,
+  },
+  title: {
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#333',
-  }
+  },
+  description: {
+    fontSize: 16,
+    color: '#555',
+    marginBottom: 10,
+  },
+  effect: {
+    fontSize: 16,
+    color: '#333',
+    marginBottom: 10,
+  },
+  resetNote: {
+    fontSize: 14,
+    color: '#ff4444',
+    marginBottom: 15,
+  },
+  confirmButton: {
+    backgroundColor: '#007AFF',
+    paddingVertical: 12,
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  confirmButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+  closeButton: {
+    padding: 5,
+  },
 });
 
 export default RandomEventCard;
