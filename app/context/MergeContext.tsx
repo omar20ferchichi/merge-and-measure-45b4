@@ -1,47 +1,31 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { mergeItem } from '../services/gameService';
-import { useMergeItems } from '../services/gameService';
+import React, { createContext, useState, useContext, useEffect } from 'react';
+
+interface MergeState {
+  selectedItems: string[];
+  mergedItems: Record<string, number>;
+}
 
 interface MergeContextType {
-  selectedItems: { id: string; name: string; value: number }[];
-  setSelectedItems: (items: { id: string; name: string; value: number }[]) => void;
-  onMerge: (itemId: string) => void;
-  mergeItems: { id: string; name: string; value: number; imageUrl: string }[];
+  selectedItems: string[];
+  mergedItems: Record<string, number>;
+  setSelectedItems: (items: string[]) => void;
+  setMergedItems: (items: Record<string, number>) => void;
 }
 
 const MergeContext = createContext<MergeContextType | undefined>(undefined);
 
 export const MergeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [selectedItems, setSelectedItems] = useState<{ id: string; name: string; value: number }[]>([]);
-  const [mergeItems, setMergeItems] = useState<{ id: string; name: string; value: number; imageUrl: string }[]>([]);
+  const [selectedItems, setSelectedItems] = useState<string[]>([]);
+  const [mergedItems, setMergedItems] = useState<Record<string, number>>({});
 
   useEffect(() => {
-    const loadMergeItems = async () => {
-      try {
-        const items = await useMergeItems();
-        setMergeItems(items);
-      } catch (error) {
-        console.error('Failed to load merge items:', error);
-      }
-    };
-
-    loadMergeItems();
+    // Initialize merged items from local storage or default values
+    const initialMergedItems = JSON.parse(localStorage.getItem('mergedItems') || '{}');
+    setMergedItems(initialMergedItems);
   }, []);
 
-  const onMerge = async (itemId: string) => {
-    try {
-      await mergeItem(itemId);
-      // After merging, remove the item from the list and update the state
-      setMergeItems(prevItems => prevItems.filter(item => item.id !== itemId));
-      // Update selected items if needed
-      setSelectedItems(prev => prev.filter(item => item.id !== itemId));
-    } catch (error) {
-      console.error('Failed to merge item:', error);
-    }
-  };
-
   return (
-    <MergeContext.Provider value={{ selectedItems, setSelectedItems, onMerge, mergeItems }}>
+    <MergeContext.Provider value={{ selectedItems, mergedItems, setSelectedItems, setMergedItems }}>
       {children}
     </MergeContext.Provider>
   );
