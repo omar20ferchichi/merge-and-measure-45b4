@@ -1,120 +1,137 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions, Animated } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { mergeItem } from '../services/mergeService';
-
-const { width } = Dimensions.get('window');
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Animated, Easing } from 'react-native';
+import { useMergeContext } from '../context/MergeContext';
 
 interface MergeItemProps {
-  item: { 
-    id: string;
-    type: string;
-    value: number;
-    image: string;
-    position: { x: number; y: number };
-    onMerge: (id: string) => void;
-  };
+  id: string;
+  value: number;
+  onMerge: (id: string) => void;
+  onDragStart: (id: string) => void;
+  onDragEnd: (id: string) => void;
 }
 
-const MergeItem: React.FC<MergeItemProps> = ({ item, onMerge }) => {
+const MergeItem: React.FC<MergeItemProps> = ({ id, value, onMerge, onDragStart, onDragEnd }) => {
+  const { selectedItems, setSelectedItems, mergedItems, setMergedItems } = useMergeContext();
   const [isDragging, setIsDragging] = useState(false);
-  const [isMerged, setIsMerged] = useState(false);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-  const dragPosition = useRef(new Animated.ValueXY({ x: 0, y: 0 }));
-
-  const handlePress = () => {
-    setIsDragging(true);
-    dragPosition.current.setValue({ x: item.position.x, y: item.position.y });
-  };
-
-  const handleMove = (event: any) => {
-    if (!isDragging) return;
-    const { touchX, touchY } = event.nativeEvent;
-    const newX = touchX - item.position.x;
-    const newY = touchY - item.position.y;
-    setDragOffset({ x: newX, y: newY });
-    dragPosition.current.setValue({ x: newX,  y: newY });
-  };
-
-  const handleRelease = () => {
-    setIsDragging(false);
-    setIsMerged(true);
-    onMerge(item.id);
-  };
+  const [scale] = useState(new Animated.Value(1));
+  const dragRef = useRef<Animated.Value>(new Animated.Value(0));
 
   useEffect(() => {
-    const subscription = dragPosition.current.addListener(({ value }) => {
-      if (isDragging) {
-        setDragOffset({ x: value.x, y: value.y });
-      }
-    });
-    return () => subscription.remove();
-  }, [isDragging]);
+    const handleDragStart = () => {
+      setIsDragging(true);
+      onDragStart(id);
+      Animated.timing(dragRef.current, {
+        toValue: 1,
+        duration: 200,
+        easing: Easing.linear,
+        useNativeDriver: false
+      }).start();
+    };
+
+    const handleDragEnd = () => {
+      setIsDragging(false);
+      onDragEnd(id);
+      Animated.timing(dragRef.current, {
+        toValue: 0,
+        duration: 200,
+        easing: Easing.linear,
+        useNativeDriver: false
+      }).start();
+    };
+
+    return () => {
+      Animated.timing(dragRef.current, {
+        toValue: 0,
+        duration: 200,
+        easing: Easing.linear,
+        useNativeDriver: false
+      }).start();
+    };
+  }, [id, onDragStart, onDragEnd]);
+
+  const handlePress = () => {
+    if (isDragging) return;
+    if (selectedItems.includes(id)) {
+      setSelectedItems(selectedItems.filter(item => item !== id));
+    } else {
+      setSelectedItems([...selectedItems, id]);
+    }
+  };
+
+  const handleMerge = () => {
+    if (selectedItems.length >= 2) {
+      const mergedValue = selectedItems.reduce((sum, itemId) => sum + mergedItems[itemId], 0);
+      setMergedItems(prev => ({
+        ...prev,
+        [id]: mergedValue
+      }));
+      setSelectedItems([]);
+      onMerge(id);
+    }
+  };
 
   return (
-    <Animated.View
-      style={[styles.itemContainer, {
-        transform: dragPosition.current.getTranslateTransform(),
-      }]}
+    <TouchableOpacity
+      onPress={handlePress}
+      style={styles.itemContainer}
     >
-      <TouchableOpacity
-        onPress={handlePress}
-        onMoveShouldSetResponder={() => isDragging}
-        onMove={handleMove}
-        onRelease={handleRelease}
-      >
+      <Animated.View style={{ transform: [{ translateY: dragRef.current }] }}>
         <View style={styles.itemCard}>
-          <Image source={{ uri: item.image }} style={styles.itemImage} />
-          <Text style={styles.itemValue}>{item.value}</Text>
-          <Text style={styles.itemType}>{item.type}</Text>
-          <Ionicons name="ios-arrow-forward" size={24} color="white" />
+          <Text style={styles.itemValue}>{value}</Text>
         </View>
-      </TouchableOpacity>
-    </Animated.View>
+      </Animated.View>
+      {selectedItems.includes(id) && (
+        <TouchableOpacity
+          onPress={handleMerge}
+          style={styles.mergeButton}
+        >
+          <Text style={styles.mergeButtonText}>Merge</Text>
+        </TouchableOpacity>
+      )}
+    </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   itemContainer: {
-    position: 'absolute',
-    width: 100,
-    height: 100,
-    backgroundColor: 'rgba(0, 0, 0, 0.3)',
-    borderRadius: 15,
-    justifyContent: 'center',
+    width: 80,
+    height: 80,
+    margin: 10,
     alignItems: 'center',
-    zIndex: 10,
+    justifyContent: 'center',
+    backgroundColor: '#f0f0f0',
+    borderRadius: 10,
+    elevation: 2,
   },
   itemCard: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: 'white',
-    borderRadius: 15,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-  },
-  itemImage: {
     width: 60,
     height: 60,
+    backgroundColor: '#ffffff',
     borderRadius: 10,
-    marginBottom: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 1,
   },
   itemValue: {
-    fontSize: 20,
+    fontSize: 24,
     fontWeight: 'bold',
-    color: 'black',
-    marginBottom: 5,
   },
-  itemType: {
+  mergeButton: {
+    position: 'absolute',
+    bottom: 0,
+    width: '100%',,
+    height: 30,
+    backgroundColor: '#4CAF50',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 5,
+    elevation: 1,
+  },
+  mergeButtonText: {
+    color: 'white',
     fontSize: 14,
-    color: 'gray',
-    marginBottom: 10,
-  },
+    fontWeight: 'bold',
+  }
 });
 
 export default MergeItem;
