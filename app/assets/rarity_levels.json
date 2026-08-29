@@ -1,0 +1,32 @@
+{
+  "common": {
+    "level": 1,
+    "name": "Common",
+    "color": "#888",
+    "icon": "common.png"
+  },
+  "uncommon": {
+    "level": 2,
+    "name": "Uncommon",
+    "color": "#444",
+    "icon": "uncommon.png"
+  },
+  "rare": {
+    "level": 3,
+    "name": "Rare",
+    "color": "#222",
+    "icon": "rare.png"
+  },
+  "epic": {
+    "level": 4,
+    "name": "Epic",
+    "color": "#111",
+    "icon": "epic.png"
+  },
+  "legendary": {
+    "level": 5,
+    "name": "Legendary",
+    "color": "#000",
+    "icon": "legendary.png"
+  }
+}
