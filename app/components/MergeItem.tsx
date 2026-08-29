@@ -1,105 +1,133 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated, Easing } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { mergeItem } from '../../services/gameService';
+import { useMergeContext } from '../../context/MergeContext';
 
 interface MergeItemProps {
-  item: { id: string; name: string; value: number; isMerged: boolean; }
-  onMerge: (itemId: string) => void;
-  onUnmerge: (itemId: string) => void;
+  id: string;
+  name: string;
+  value: number;
+  imageUrl: string;
+  selected?: boolean;
 }
 
-const MergeItem: React.FC<MergeItemProps> = ({ item, onMerge, onUnmerge }) => {
-  const [isMerged, setIsMerged] = useState(item.isMerged);
-  const [mergeAnimation] = useState(new Animated.Value(0));
+const MergeItem: React.FC<MergeItemProps> = ({ id, name, value, imageUrl, selected = false }) => {
+  const { selectedItems, setSelectedItems, onMerge } = useMergeContext();
+  const [isSelected, setIsSelected] = useState(selected);
 
   useEffect(() => {
-    setIsMerged(item.isMerged);
-  }, [item.isMerged]);
+    setIsSelected(selected);
+  }, [selected]);
 
-  const handleMerge = () => {
-    Animated.sequence([
-      Animated.timing(mergeAnimation, {
-        toValue: 1,
-        duration: 200,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      }),
-      Animated.timing(mergeAnimation, {
-        toValue: 0,
-        duration: 200,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      })
-    ]).start(() => {
-      onMerge(item.id);
+  const toggleSelection = () => {
+    setIsSelected(!isSelected);
+    setSelectedItems(prev => {
+      const newItems = [...prev];
+      const itemIndex = newItems.findIndex(item => item.id === id);
+      if (itemIndex !== -1) {
+        newItems.splice(itemIndex, 1);
+      } else {
+        newItems.push({ id, name, value });
+      }
+      return new
     });
   };
 
-  const handleUnmerge = () => {
-    Animated.sequence([
-      Animated.timing(mergeAnimation, {
-        toValue: 1,
-        duration: 200,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      }),
-      Animated.timing(mergeAnimation, {
-        toValue: 0,
-        duration: 200,
-        easing: Easing.linear,
-        useNativeDriver: true,
-      })
-    ]).start(() => {
-      onUnmerge(item.id);
-    });
+  const handleMerge = () => {
+    onMerge(id);
   };
 
   return (
-    <View style={styles.itemContainer}>
+    <TouchableOpacity
+      style={styles.itemContainer}
+      onPress={toggleSelection}
+    >
+      <View style={styles.imageContainer}>
+        <Image source={{ uri: imageUrl }} style={styles.image} />
+      </View>
+      <View style={styles.infoContainer}>
+        <Text style={styles.name}>{name}</Text>
+        <Text style={styles.value}>Value: {value}</Text>
+      </View>
+      {isSelected && (
+        <View style={styles.selectedIndicator}>
+          <Text style={styles.selectedText}>Selected</Text>
+        </View>
+      )}
       <TouchableOpacity
-        style={styles.item}
-        onPress={isMerged ? handleUnmerge : handleMerge}
+        style={styles.mergeButton}
+        onPress={handleMerge}
+        disabled={!isSelected}
       >
-        <Text style={styles.itemText}>{item.name}</Text>
-        <Text style={styles.valueText}>{item.value}</Text>
-        <Animated.View style={{ opacity: mergeAnimation }}>
-          <Ionicons name={isMerged ? 'checkmark' : 'arrow-forward'} size={24} color="green" />
-        </Animated.View>
+        <Text style={styles.mergeButtonText}>Merge</Text>
       </TouchableOpacity>
-    </View>
+    </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   itemContainer: {
-    margin: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
     padding: 10,
-    backgroundColor: '#f0f0f0',
+    marginVertical: 5,
+    backgroundColor: '#fff',
     borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  item: {
-    width: 100,
-    height: 100,
-    backgroundColor: '#ffffff',
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3,
-    elevation: 5,
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
   },
-  itemText: {
+  imageContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    overflow: 'hidden',
+    marginRight: 10,
+  },
+  image: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
+  },
+  infoContainer: {
+    flex: 1,
+  },
+  name: {
     fontSize: 16,
     fontWeight: 'bold',
     marginBottom: 5,
   },
-  valueText: {
+  value: {
     fontSize: 14,
-    color: '#666',
+    color: '#555',
+  },
+  selectedIndicator: {
+    position: 'absolute',
+    right: 10,
+    top: 10,
+    backgroundColor: 'green',
+    borderRadius: 10,
+    padding: 5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  selectedText: {
+    color: '#fff',
+    fontWeight: 'bold',
+  },
+  mergeButton: {
+    backgroundColor: '#007BFF',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 5,
+    marginLeft: 10,
+  },
+  mergeButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });
 
