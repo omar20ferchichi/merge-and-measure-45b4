@@ -1,111 +1,95 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, ActivityIndicator } from 'react-native';
+import React from 'react';
+import { View, Text, Modal, Pressable, StyleSheet, Animated, Easing } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import RandomEventCard from './RandomEventCard';
 
 interface RandomEventModalProps {
-  isVisible: boolean;
+  visible: boolean;
   event: {
     id: string;
     title: string;
     description: string;
     effect: string;
+    duration: number;
     type: 'bonus' | 'challenge' | 'reset';
-    duration?: number;
-  };
+  } | null;
   onClose: () => void;
-  onConfirm: () => void;
-  isLoading: boolean;
+  onEventResolved: () => void;
 }
 
-const RandomEventModal: React.FC<RandomEventModalProps> = ({ isVisible, event, onClose, onConfirm, isLoading }) => {
-  const [showCard, setShowCard] = useState(false);
+const RandomEventModal: React.FC<RandomEventModalProps> = ({ visible, event, onClose, onEventResolved }) => {
+  const [fadeAnim] = React.useState(new Animated.Value(0));
+
+  React.useEffect(() => {
+    if (visible) {
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        easing: Easing.inOut(Easing.ease),
+        useNativeDriver: true,
+      }).start();
+    } else {
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 200,
+        easing: Easing.inOut(Easing.ease),
+        useNativeDriver: true,
+      }).start();
+    }
+  }, [visible]);
+
+  if (!event) return null;
 
   return (
     <Modal
-      animationType="slide"
       transparent={true}
-      visible={isVisible}
-      onRequestClose={on
+      visible={visible}
+      animationType="slide"
+      onRequestClose={onClose}
     >
-      <View style={styles.modalContainer}>
-        <View style={styles.cardContainer}>
-          <View style={styles.headerContainer}>
-            <Text style={styles.title}>{event.title}</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close-circle-outline" size={24} color="gray" />
-            </TouchableOpacity>
+      <View style={styles.modalBackground}>
+        <Animated.View style={[styles.modalContainer, { opacity: fadeAnim }]}> 
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>Random Event</Text>
+            <Pressable onPress={onClose} style={styles.closeButton}>
+              <Ionicons name="close" size={24} color="#333333" />
+            </Pressable>
           </View>
-          <Text style={styles.description}>{event.description}</Text>
-          <Text style={styles.effect}>{event.effect}</Text>
-          {event.type === 'reset' && <Text style={styles.resetNote}>This event will reset your progress.</Text>}
-          <TouchableOpacity style={styles.confirmButton} onPress={onConfirm} disabled={isLoading}>
-            <Text style={styles.confirmButtonText}>{isLoading ? <ActivityIndicator size="small" color="white" /> : 'Confirm'}</Text>
-          </TouchableOpacity>
-        </View>
+          <RandomEventCard event={event} onEventResolved={onEventResolved} />
+        </Animated.View>
       </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  modalContainer: {
+  modalBackground: {
     flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
-  cardContainer: {
+  modalContainer: {
     width: '90%',
     maxWidth: 400,
+    backgroundColor: '#ffffff',
+    borderRadius: 16,
     padding: 20,
-    backgroundColor: 'white',
-    borderRadius: 10,
     elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3,
   },
-  headerContainer: {
+  modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 20,
   },
-  title: {
-    fontSize: 22,
+  modalTitle: {
+    fontSize: 20,
     fontWeight: 'bold',
-    color: '#333',
-  },
-  description: {
-    fontSize: 16,
-    color: '#555',
-    marginBottom: 10,
-  },
-  effect: {
-    fontSize: 16,
-    color: '#333',
-    marginBottom: 10,
-  },
-  resetNote: {
-    fontSize: 14,
-    color: '#ff4444',
-    marginBottom: 15,
-  },
-  confirmButton: {
-    backgroundColor: '#007AFF',
-    paddingVertical: 12,
-    borderRadius: 5,
-    alignItems: 'center',
-  },
-  confirmButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: 'bold',
+    color: '#333333',
   },
   closeButton: {
-    padding: 5,
+    padding: 8,
   },
 });
 
