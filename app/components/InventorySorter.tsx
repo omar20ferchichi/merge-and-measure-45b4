@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
-import { MergeItem } from '../../types';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
+import { MergeItem } from '../types';
 
 interface InventorySorterProps {
   items: MergeItem[];
@@ -8,54 +8,46 @@ interface InventorySorterProps {
 }
 
 const InventorySorter: React.FC<InventorySorterProps> = ({ items, onSort }) => {
-  const [sortedItems, setSortedItems] = useState<MergeItem[]>([]);
-  const [activeFilter, setActiveFilter] = useState<string>('all');
+  const [sortedItems, setSortedItems] = useState<MergeItem[]>(items);
+  const [activeSort, setActiveSort] = useState<string>('all');
 
-  useEffect(() => {
-    const sorted = [...items].sort((a, b) => {
-      if (activeFilter === 'all') return 0;
-      if (activeFilter === 'healing') {
-        return a.effect === 'healing' ? -1 : 1;
-      }
-      if (activeFilter === 'damage') {
-        return a.effect === 'damage' ? -1 : 1;
-      }
-      return 0;
-    });
-    setSortedItems(sorted);
-  }, [items, activeFilter]);
-
-  const handleFilterChange = (filter: string) => {
-    setActiveFilter(filter);
-  };
-
-  const handleSort = () => {
-    onSort(sortedItems);
+  const sortItems = (skill: string) => {
+    setActiveSort(skill);
+    if (skill === 'all') {
+      setSortedItems(items);
+    } else {
+      setSortedItems(
+        items.filter(item => item.skill === skill)
+      );
+    }
   };
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerText}>Inventory Sorter</Text>
-      </View>
-      <View style={styles.filters}>
+      <View style={styles.sortControls}>
         <TouchableOpacity
-          style={styles.filterButton}
-          onPress={() => handleFilterChange('all')}
+          style={[styles.sortButton, activeSort === 'all' && styles.sortButtonActive]}
+          onPress={() => sortItems('all')}
         >
-          <Text style={activeFilter === 'all' ? styles.activeFilterText : styles.filterText}>All</Text>
+          <Text style={styles.sortButtonText}>All</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.filterButton}
-          onPress={() => handleFilterChange('healing')}
+          style={[styles.sortButton, activeSort === 'strength' && styles.sortButtonActive]}
+          onPress={() => sortItems('strength')}
         >
-          <Text style={activeFilter === 'healing' ? styles.activeFilterText : styles.filterText}>Healing</Text>
+          <Text style={styles.sortButtonText}>Strength</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={syles.filterButton}
-          onPress={() => handleFilterChange('damage')}
+          style={[styles.sortButton, active, activeSort === 'agility' && styles.sortButtonActive]}
+          onPress={() => sortItems('agility')}
         >
-          <Text style={activeFilter === 'damage' ? styles.activeFilterText : styles.filterText}>Damage</Text>
+          <Text style={styles.sortButtonText}>Agility</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.sortButton, activeSort === 'intelligence' && styles.sortButtonActive]}
+          onPress={() => sortItems('intelligence')}
+        >
+          <Text style={styles.sortButtonText}>Intelligence</Text>
         </TouchableOpacity>
       </View>
       <FlatList
@@ -63,14 +55,11 @@ const InventorySorter: React.FC<InventorySorterProps> = ({ items, onSort }) => {
         keyExtractor={item => item.id}
         renderItem={({ item }) => (
           <View style={styles.itemContainer}>
-            <Text style={styles.itemText}>{item.name}</Text>
-            <Text style={styles.itemEffectText}>{item.effect}</Text>
+            <Text>{item.name}</Text>
+            <Text>Level: {item.level}</Text>
           </View>
         )}
       />
-      <TouchableOpacity style={styles.sortButton} onPress={handleSort}>
-        <Text style={styles.sortButtonText}>Sort</Text>
-      </TouchableOpacity>
     </View>
   );
 };
@@ -79,64 +68,31 @@ const styles = StyleSheet.create({
   container: {
     padding: 16,
     backgroundColor: '#f5f5f5',
-    borderRadius: 8,
+  },
+  sortControls: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
     marginBottom: 16,
   },
-  header: {
-    marginBottom: 12,
-  },
-  headerText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  filters: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 12,
-  },
-  filterButton: {
-    padding: 8,
-    backgroundColor: '#ddd',
-    borderRadius: 4,
+  sortButton: {
+    padding: 12,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 8,
     marginHorizontal: 4,
   },
-  filterText: {
-    color: '#333',
+  sortButtonActive: {
+    backgroundColor: '#4caf50',
   },
-  activeFilterText: {
-    color: '#007bff',
+  sortButtonText: {
+    color: '#333',
     fontWeight: 'bold',
   },
   itemContainer: {
     padding: 12,
+    marginVertical: 8,
     backgroundColor: '#fff',
-    borderRadius: 6,
-    marginBottom: 8,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    borderRadius: 8,
     elevation: 2,
-  },
-  itemText: {
-    fontSize: 16,
-    color: '#333',
-  },
-  itemEffectText: {
-    fontSize: 14,
-    color: '#666',
-    marginTop: 4,
-  },
-  sortButton: {
-    padding: 12,
-    backgroundColor: '#007bff',
-    borderRadius: 6,
-    alignItems: 'center',
-  },
-  sortButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: 'bold',
   },
 });
 
