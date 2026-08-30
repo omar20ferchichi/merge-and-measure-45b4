@@ -1,52 +1,37 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image, Animated } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useMergeContext } from '../../context/MergeContext';
 
-const MergeFailureModal: React.FC = () => {
-  const { mergeFailed, resetMerge } = useMergeContext();
-  const [fadeAnim] = useState(new Animated.Value(0));
-
-  useEffect(() => {
-    if (mergeFailed) {
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }).start();
-    }
-  }, [mergeFailed]);
-
-  const handleRetry = () => {
-    resetMerge();
-    Animated.timing(fadeAnim, {
-      toValue: 0,
-      duration: 300,
-      useNativeDriver: true,
-    }).start();
-  };
+const MergeFailureModal: React.FC<{ visible: boolean; onRetry: () => void; onClose: () => void }> = ({ visible, onRetry, onClose }) => {
+  const [showRetry, setShowRetry] = useState(true);
 
   return (
-    <Animated.View style={[styles.modalContainer, { opacity: fadeAnim }]}>
-      <View style={styles.modalContent}>
-        <Image source={require('../../../assets/images/merge-failure.png')} style={styles.failureImage} />
-        <Text style={styles.failureText}>Merge Failed! Try Again.</Text>
-        <TouchableOpacity onPress={handleRetry} style={styles.retryButton}>
-          <Ionicons name="reload-outline" size={24} color="white" />
-          <Text style={styles.retryText}>Retry Merge</Text>
-        </TouchableOpacity>
+    <Modal
+      transparent={true}
+      visible={visible}
+      animationType="slide"
+    >
+      <View style={styles.modalContainer}>
+        <View style={styles.modalContent}>
+          <Image source={require('../../../assets/images/merge_failure_icon.png')} style={styles.failureIcon} />
+          <Text style={styles.failureMessage}>Merge failed! Try again.</Text>
+          {showRetry && (
+            <TouchableOpacity style={styles.retryButton} onPress={onRetry}>
+              <Text style={styles.retryButtonText}>Retry Merge</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity style={styles.closeButton} onPress={onClose}>
+            <Text style={styles.closeButtonText}>Close</Text>
+          </TouchableOpacity>
+        </View>
       </View>
-    </Animated.View>
+    </Modal>
   );
 };
 
 const styles = StyleSheet.create({
   modalContainer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -54,33 +39,44 @@ const styles = StyleSheet.create({
   modalContent: {
     backgroundColor: 'white',
     padding: 20,
-    borderRadius: 15,
+    borderRadius: 10,
     alignItems: 'center',
     width: '80%',
+    maxWidth: 300,
   },
-  failureImage: {
-    width: 100,
-    height: 100,
+  failureIcon: {
+    width: 60,
+    height: 60,
     marginBottom: 15,
   },
-  failureText: {
+  failureMessage: {
     fontSize: 18,
+    fontWeight: 'bold',
     marginBottom: 20,
     textAlign: 'center',
   },
   retryButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#FF6B6B',
+    backgroundColor: '#4CAF50',
     paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingHorizontal: 24,
     borderRadius: 8,
+    marginBottom: 15,
   },
-  retryText: {
+  retryButtonText: {
     color: 'white',
     fontSize: 16,
-    marginLeft: 8,
+    fontWeight: 'bold',
+  },
+  closeButton: {
+    backgroundColor: '#f44336',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 8,
+  },
+  closeButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 
