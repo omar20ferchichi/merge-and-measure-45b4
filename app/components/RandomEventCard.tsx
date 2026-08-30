@@ -1,108 +1,105 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 interface RandomEventCardProps {
-  isVisible: boolean;
   event: {
     id: string;
     title: string;
     description: string;
     effect: string;
+    duration: number;
     type: 'bonus' | 'challenge' | 'reset';
-    duration?: number;
   };
-  onClose: () => void;
-  onConfirm: () => void;
-  isLoading: boolean;
+  onEventResolved: () => void;
 }
 
-const RandomEventCard: React.FC<RandomEventCardProps> = ({ isVisible, event, onClose, onConfirm, isLoading }) => {
+const RandomEventCard: React.FC<RandomEventCardProps> = ({ event, onEventResolved }) => {
   return (
-    <Modal
-      animationType="slide"
-      transparent={true}
-      visible={isVisible}
-      onRequestClose={onClose}
-    >
-      <View style={styles.modalContainer}>
-        <View style={styles.cardContainer}>
-          <View style={styles.headerContainer}>
-            <Text style={styles.title}>{event.title}</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close-circle-outline" size={24} color="gray" />
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.description}>{event.description}</Text>
-          <Text style={styles.effect}>{event.effect}</Text>
-          {event.type === 'reset' && <Text style={styles.resetNote}>This event will reset your progress.</Text>}
-          <TouchableOpacity style={styles.confirmButton} onPress={onConfirm} disabled={isLoading}>
-            <Text style={styles.confirmButtonText}>{isLoading ? <ActivityIndicator size="small" color="white" /> : 'Confirm'}</Text>
-          </TouchableOpacity>
-        </View>
+    <View style={styles.cardContainer}>
+      <View style={styles.cardHeader}>
+        <Text style={styles.cardTitle}>{event.title}</Text>
+        <Text style={styles.cardTypeLabel}>{event.type}</Text>
       </View>
-    </Modal>
+      <View style={styles.cardBody}>
+        <Text style={styles.cardDescription}>{event.description}</Text>
+        <Text style={styles.cardEffectText}>{event.effect}</Text>
+      </View>
+      <View style={styles.cardFooter}>
+        <TouchableOpacity
+          style={styles.resolveButton}
+          onPress={onEventResolved}
+        >
+          <Text style={styles.resolveButtonText}>Resolve Event</Text>
+          <Ionicons name="checkmark-circle" size={20} color="white" />
+        </TouchableOpacity>
+      </View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  modalContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
   cardContainer: {
-    width: '90%',
-    maxWidth: 400,
-    padding: 20,
-    backgroundColor: 'white',
-    borderRadius: 10,
-    elevation: 5,
+    backgroundColor: '#ffffff',
+    borderRadius: 12,
+    padding: 16,
+    marginVertical: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3,
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 3,
   },
-  headerContainer: {
+  cardHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 15,
+    marginBottom: 12,
   },
-  title: {
-    fontSize: 22,
+  cardTitle: {
+    fontSize: 18,
     fontWeight: 'bold',
-    color: '#333',
+    color: '#333333',
   },
-  description: {
-    fontSize: 16,
-    color: '#555',
-    marginBottom: 10,
+  cardTypeLabel: {
+    backgroundColor: '#f0f0f0',
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    fontSize: 12,
+    color: '#666666',
   },
-  effect: {
-    fontSize: 16,
-    color: '#333',
-    marginBottom: 10,
+  cardBody: {
+    marginBottom: 16,
   },
-  resetNote: {
+  cardDescription: {
     fontSize: 14,
-    color: '#ff4444',
-    marginBottom: 15,
+    color: '#555555',
+    marginBottom: 8,
   },
-  confirmButton: {
-    backgroundColor: '#007AFF',
-    paddingVertical: 12,
-    borderRadius: 5,
-    alignItems: 'center',
-  },
-  confirmButtonText: {
-    color: 'white',
-    fontSize: 16,
+  cardEffectText: {
+    fontSize: 14,
+    color: '#333333',
     fontWeight: 'bold',
   },
-  closeButton: {
-    padding: 5,
+  cardFooter: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+  },
+  resolveButton: {
+    backgroundColor: '#4CAF50',
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  resolveButtonText: {
+    color: 'white',
+    fontSize: 14,
+    fontWeight: 'bold',
+    marginRight: 8,
   },
 });
 
