@@ -1,84 +1,63 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
-import { mergeItem } from '../services/mergeService';
-import { rarityColors } from '../utils/colors';
+import { MergeItem } from '../../types';
 
-interface InventoryItem {
-  id: string;
-  name: string;
-  rarity: 'common' | 'rare' | 'epic' | 'legendary';
-  value: number;
+interface InventorySorterProps {
+  items: MergeItem[];
+  onSort: (sortedItems: MergeItem[]) => void;
 }
 
-const InventorySorter: React.FC<{ items: InventoryItem[] }> = ({ items }) => {
-  const [sortedItems, setSortedItems] = useState<InventoryItem[]>([]);
-  const [selectedRarity, setSelectedRarity] = useState<'all' | 'common' | 'rare' | 'epic' | 'legendary'>('all');
-  const [selectedSort, setSelectedSort] = useState<'value' | 'rarity'>('value');
+const InventorySorter: React.FC<InventorySorterProps> = ({ items, onSort }) => {
+  const [sortedItems, setSortedItems] = useState<MergeItem[]>([]);
+  const [sortBy, setSortBy] = useState<'rarity' | 'type'>('rarity');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
   useEffect(() => {
     const sorted = [...items];
-    if (selectedSort === 'value') {
-      sorted.sort((a, b) => b.value - a.value);
+    if (sortBy === 'rarity') {
+      sorted.sort((a, b) => {
+        const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
+        const aIndex = rarityOrder.indexOf(a.rarity);
+        const bIndex = rarityOrder.indexOf(b.rarity);
+        return sortOrder === 'asc' ? aIndex - bIndex : bIndex - aIndex;
+      });
     } else {
       sorted.sort((a, b) => {
-        const rarityOrder = ['common', 'rare', 'epic', 'legendary'];
-        return rarityOrder.indexOf(a.rarity) - rarityOrder.indexOf(b.rarity);
+        const typeOrder = ['material', 'tool', 'component', 'unit', 'misc'];
+        const aIndex = typeOrder.indexOf(a.type);
+        const bIndex = typeOrder.indexOf(b.type);
+        return sortOrder === 'asc' ? aIndex - bIndex : bIndex - aIndex;
       });
     }
-
-    if (selectedRarity !== 'all') {
-      setSortedItems(sorted.filter(item => item.rarity === selectedRarity));
-    } else {
-      setSortedItems(sorted);
-    }
-  }, [items, selectedSort, selectedRarity]);
+    setSortedItems(sorted);
+  }, [items, sortBy, sortOrder]);
 
   return (
     <View style={styles.container}>
-      <View style={styles.filtersContainer}>
+      <View style={styles.sortControls}>
         <TouchableOpacity
-          style={[styles.filterButton, selectedSort === 'value' && styles.filterButtonActive]}
-          onPress={() => setSelectedSort('value')}
+          style={sortBy === 'rarity' ? styles.sortButtonActive : styles.sortButton}
+          onPress={() => setSortBy('rarity')}
         >
-          <Text style={styles.filterButtonText}>Sort by Value</Text>
+          <Text style={sortBy === 'rarity' ? styles.sortButtonTextActive : styles.sortButtonText}>Sort by Rarity</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.filterButton, selectedSort === 'rarity' && styles.filterButtonActive]}
-          onPress={() => setSelectedSort('rarity')}
+          style={sortBy === 'type' ? styles.sortButtonActive : styles.sortButton}
+          onPress={() => setSortBy('type')}
         >
-          <Text style={styles.filterButtonText}>Sort by Rarity</Text>
-        </TouchableOpacity>
-      </View>
-      <View style={styles.rarityFiltersContainer}>
-        <TouchableOpacity
-          style={[styles.rarityFilterButton, selectedRarity === 'all' && styles.rarityFilterButtonActive]}
-          onPress={() => setSelectedRarity('all')}
-        >
-          <Text style={styles.rarityFilterButtonText}>All</Text>
+          <Text style={sortBy === 'type' ? styles.sortButtonTextActive : styles.sortButtonText}>Sort by Type</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.randityFilterButton, selectedRarity === 'common' && styles.rarityFilterButtonActive]}
-          onPress={() => setSelectedRarity('common')}
+          style={sortOrder === 'asc' ? styles.sortButtonActive : styles.sortButton}
+          onPress={() => setSortOrder('asc')}
         >
-          <Text style={styles.rarityFilterButtonText}>Common</Text>
+          <Text style={sortOrder === 'asc' ? styles.sortButtonTextActive : styles.sortButtonText}>Ascending</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={[styles.rarityFilterButton, selectedRarity === 'rare' && styles.rarityFilterButtonActive]}
-          onPress={() => setSelectedRarity('rare')}
+          style={sortOrder === 'desc' ? styles.sortButtonActive : styles.sortButton}
+          onPress={() => setSortOrder('desc')}
         >
-          <Text style={styles.rarityFilterButtonText}>Rare</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.rarityFilterButton, selectedRarity === 'epic' && styles.rarityFilterButtonActive]}
-          onPress={() => setSelectedRarity('epic')}
-        >
-          <Text style={styles.rarityFilterButtonText}>Epic</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.rarityFilterButton, selectedRarity === 'legendary' && styles.rarityFilterButtonActive]}
-          onPress={() => setSelectedRarity('legendary')}
-        >
-          <Text style={styles.rarityFilterButtonText}>Legendary</Text>
+          <Text style={sortOrder === 'desc' ? styles.sortButtonTextActive : styles.sortButtonText}>Descending</Text>
         </TouchableOpacity>
       </View>
       <FlatList
@@ -87,17 +66,14 @@ const InventorySorter: React.FC<{ items: InventoryItem[] }> = ({ items }) => {
         renderItem={({ item }) => (
           <View style={styles.itemContainer}>
             <Text style={styles.itemName}>{item.name}</Text>
-            <Text style={styles.itemValue}>Value: {item.value}</Text>
-            <Text style={styles.itemRarity}>{item.rarity}</Text>
-            <TouchableOpacity
-              style={styles.mergeButton}
-              onPress={() => mergeItem(item.id)}
-            >
-              <Text style={styles.mergeButtonText}>Merge</Text>
-            </TouchableOpacity>
+            <Text style={styles.itemRarity}>Rarity: {item.rarity}</Text>
+            <Text style={styles.itemType}>Type: {item.type}</Text>
           </View>
         )}
       />
+      <TouchableOpacity style={styles.applySortButton} onPress={() => onSort(sortedItems)}>
+        <Text style={styles.applySortButtonText}>Apply Sort</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -107,71 +83,59 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: '#f5f5f5',
   },
-  filtersContainer: {
+  sortControls: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 16,
   },
-  filterButton: {
+  sortButton: {
     padding: 8,
     backgroundColor: '#e0e0e0',
-    borderRadius: 8,
+    borderRadius: 5,
     marginHorizontal: 4,
   },
-  filterButtonActive: {
+  sortButtonActive: {
+    padding: 8,
     backgroundColor: '#4caf50',
-  },
-  filterButtonText: {
-    color: '#000',
-    fontWeight: 'bold',
-  },
-  rarityFiltersContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 16,
-  },
-  rarityFilterButton: {
-    padding: 8,
-    backgroundColor: '#e0e0e0',
-    borderRadius: 8,
+    borderRadius: 5,
     marginHorizontal: 4,
   },
-  rarityFilterButtonActive: {
-    backgroundColor: '#2196f3',
-  },
-  rarityFilterButtonText: {
+  sortButtonText: {
     color: '#000',
-    fontWeight: 'bold',
+    fontSize: 14,
+  },
+  sortButtonTextActive: {
+    color: '#fff',
+    fontSize: 14,
   },
   itemContainer: {
-    padding: 16,
+    padding: 12,
+    marginVertical: 8,
     backgroundColor: '#fff',
-    marginBottom: 16,
     borderRadius: 8,
     elevation: 2,
   },
   itemName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    marginBottom: 8,
-  },
-  itemValue: {
     fontSize: 16,
-    color: '#333',
-    marginBottom: 4,
+    fontWeight: 'bold',
   },
   itemRarity: {
     fontSize: 14,
-    color: rarityColors[item.rarity],
-    marginBottom: 8,
+    color: '#666',
   },
-  mergeButton: {
-    padding: 8,
-    backgroundColor: '#f44336',
-    borderRadius: 8,
+  itemType: {
+    fontSize: 14,
+    color: '#999',
   },
-  mergeButtonText: {
+  applySortButton: {
+    padding: 12,
+    backgroundColor: '#4caf50',
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  applySortButtonText: {
     color: '#fff',
+    fontSize: 16,
     fontWeight: 'bold',
   },
 });
