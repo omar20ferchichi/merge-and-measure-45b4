@@ -9,55 +9,34 @@ interface InventorySorterProps {
 
 const InventorySorter: React.FC<InventorySorterProps> = ({ items, onSort }) => {
   const [sortedItems, setSortedItems] = useState<MergeItem[]>([]);
-  const [sortBy, setSortBy] = useState<'rarity' | 'type'>('rarity');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [sortBy, setSortBy] = useState<'value' | 'type'>('value');
 
   useEffect(() => {
     const sorted = [...items];
-    if (sortBy === 'rarity') {
-      sorted.sort((a, b) => {
-        const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
-        const aIndex = rarityOrder.indexOf(a.rarity);
-        const bIndex = rarityOrder.indexOf(b.rarity);
-        return sortOrder === 'asc' ? aIndex - bIndex : bIndex - aIndex;
-      });
+    if (sortBy === 'value') {
+      sorted.sort((a, b) => b.value - a.value);
     } else {
-      sorted.sort((a, b) => {
-        const typeOrder = ['material', 'tool', 'component', 'unit', 'misc'];
-        const aIndex = typeOrder.indexOf(a.type);
-        const bIndex = typeOrder.indexOf(b.type);
-        return sortOrder === 'asc' ? aIndex - bIndex : bIndex - aIndex;
-      });
+      sorted.sort((a, b) => a.type.localeCompare(b.type));
     }
     setSortedItems(sorted);
-  }, [items, sortBy, sortOrder]);
+    onSort(sorted);
+  }, [items, sortBy]);
 
   return (
     <View style={styles.container}>
+      <Text style={styles.header}>Sort Inventory</Text>
       <View style={styles.sortControls}>
         <TouchableOpacity
-          style={sortBy === 'rarity' ? styles.sortButtonActive : styles.sortButton}
-          onPress={() => setSortBy('rarity')}
+          style={styles.sortButton}
+          onPress={() => setSortBy('value')}
         >
-          <Text style={sortBy === 'rarity' ? styles.sortButtonTextActive : styles.sortButtonText}>Sort by Rarity</Text>
+          <Text style={styles.sortButtonText}>Sort by Value</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={sortBy === 'type' ? styles.sortButtonActive : styles.sortButton}
+          style={styles.sortButton}
           onPress={() => setSortBy('type')}
         >
-          <Text style={sortBy === 'type' ? styles.sortButtonTextActive : styles.sortButtonText}>Sort by Type</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={sortOrder === 'asc' ? styles.sortButtonActive : styles.sortButton}
-          onPress={() => setSortOrder('asc')}
-        >
-          <Text style={sortOrder === 'asc' ? styles.sortButtonTextActive : styles.sortButtonText}>Ascending</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={sortOrder === 'desc' ? styles.sortButtonActive : styles.sortButton}
-          onPress={() => setSortOrder('desc')}
-        >
-          <Text style={sortOrder === 'desc' ? styles.sortButtonTextActive : styles.sortButtonText}>Descending</Text>
+          <Text style={styles.sortButtonText}>Sort by Type</Text>
         </TouchableOpacity>
       </View>
       <FlatList
@@ -65,15 +44,11 @@ const InventorySorter: React.FC<InventorySorterProps> = ({ items, onSort }) => {
         keyExtractor={item => item.id}
         renderItem={({ item }) => (
           <View style={styles.itemContainer}>
-            <Text style={styles.itemName}>{item.name}</Text>
-            <Text style={styles.itemRarity}>Rarity: {item.rarity}</Text>
-            <Text style={styles.itemType}>Type: {item.type}</Text>
+            <Text style={styles.itemText}>Type: {item.type}</Text>
+            <Text style={styles.itemText}>Value: {item.value}</Text>
           </View>
         )}
       />
-      <TouchableOpacity style={styles.applySortButton} onPress={() => onSort(sortedItems)}>
-        <Text style={styles.applySortButtonText}>Apply Sort</Text>
-      </TouchableOpacity>
     </View>
   );
 };
@@ -82,6 +57,13 @@ const styles = StyleSheet.create({
   container: {
     padding: 16,
     backgroundColor: '#f5f5f5',
+    borderRadius: 8,
+    marginBottom: 16,
+  },
+  header: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 12,
   },
   sortControls: {
     flexDirection: 'row',
@@ -89,54 +71,25 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sortButton: {
-    padding: 8,
+    padding: 10,
     backgroundColor: '#e0e0e0',
     borderRadius: 5,
-    marginHorizontal: 4,
-  },
-  sortButtonActive: {
-    padding: 8,
-    backgroundColor: '#4caf50',
-    borderRadius: 5,
+    flex: 1,
     marginHorizontal: 4,
   },
   sortButtonText: {
-    color: '#000',
-    fontSize: 14,
-  },
-  sortButtonTextActive: {
-    color: '#fff',
-    fontSize: 14,
+    textAlign: 'center',
+    fontWeight: 'bold',
   },
   itemContainer: {
-    padding: 12,
-    marginVertical: 8,
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    elevation: 2,
-  },
-  itemName: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  itemRarity: {
-    fontSize: 14,
-    color: '#666',
-  },
-  itemType: {
-    fontSize: 14,
-    color: '#999',
-  },
-  applySortButton: {
-    padding: 12,
-    backgroundColor: '#4caf50',
+    padding: 8,
+    backgroundColor: '#ffffff',
     borderRadius: 5,
-    alignItems: 'center',
+    marginBottom: 8,
   },
-  applySortButtonText: {
-    color: '#fff',
+  itemText: {
     fontSize: 16,
-    fontWeight: 'bold',
+    marginVertical: 4,
   },
 });
 
