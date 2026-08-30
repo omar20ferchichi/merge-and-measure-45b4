@@ -9,34 +9,40 @@ interface InventorySorterProps {
 
 const InventorySorter: React.FC<InventorySorterProps> = ({ items, onSort }) => {
   const [sortedItems, setSortedItems] = useState<MergeItem[]>([]);
-  const [sortBy, setSortBy] = useState<'value' | 'type'>('value');
+  const [activeSort, setActiveSort] = useState<'rarity' | 'category'>('rarity');
 
   useEffect(() => {
-    const sorted = [...items];
-    if (sortBy === 'value') {
-      sorted.sort((a, b) => b.value - a.value);
+    let sorted = [...items];
+    if (activeSort === 'rarity') {
+      sorted.sort((a, b) => {
+        const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
+        return rarityOrder.indexOf(a.rarity) - rarityOrder.indexOf(b.rarity);
+      });
     } else {
-      sorted.sort((a, b) => a.type.localeCompare(b.type));
+      sorted.sort((a, b) => {
+        const categoryOrder = ['materials', 'tools', 'artifacts', 'miscellaneous'];
+        return categoryOrder.indexOf(a.category) - categoryOrder.indexOf(b.category);
+      });
     }
     setSortedItems(sorted);
     onSort(sorted);
-  }, [items, sortBy]);
+  }, [items, activeSort]);
 
   return (
     <View style={styles.container}>
       <Text style={styles.header}>Sort Inventory</Text>
       <View style={styles.sortControls}>
         <TouchableOpacity
-          style={styles.sortButton}
-          onPress={() => setSortBy('value')}
+          style={[styles.sortButton, activeSort === 'rarity' && styles.sortButtonActive]}
+          onPress={() => setActiveSort('rarity')}
         >
-          <Text style={styles.sortButtonText}>Sort by Value</Text>
+          <Text style={styles.sortButtonText}>Sort by Rarity</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.sortButton}
-          onPress={() => setSortBy('type')}
+          style={[styles.sortButton, activeSort === 'category' && styles.sortButtonActive]}
+          onPress={() => setActive, setActiveSort('category')}
         >
-          <Text style={styles.sortButtonText}>Sort by Type</Text>
+          <Text style={styles.sortButtonText}>Sort by Category</Text>
         </TouchableOpacity>
       </View>
       <FlatList
@@ -44,8 +50,9 @@ const InventorySorter: React.FC<InventorySorterProps> = ({ items, onSort }) => {
         keyExtractor={item => item.id}
         renderItem={({ item }) => (
           <View style={styles.itemContainer}>
-            <Text style={styles.itemText}>Type: {item.type}</Text>
-            <Text style={styles.itemText}>Value: {item.value}</Text>
+            <Text style={styles.itemLabel}>{item.name}</Text>
+            <Text style={styles.itemRarity}>Rarity: {item.rarity}</Text>
+            <Text style={styles.itemCategory}>Category: {item.category}</Text>
           </View>
         )}
       />
@@ -57,13 +64,11 @@ const styles = StyleSheet.create({
   container: {
     padding: 16,
     backgroundColor: '#f5f5f5',
-    borderRadius: 8,
-    marginBottom: 16,
   },
   header: {
     fontSize: 20,
     fontWeight: 'bold',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   sortControls: {
     flexDirection: 'row',
@@ -73,23 +78,33 @@ const styles = StyleSheet.create({
   sortButton: {
     padding: 10,
     backgroundColor: '#e0e0e0',
-    borderRadius: 5,
-    flex: 1,
-    marginHorizontal: 4,
+    borderRadius: 8,
+    marginHorizontal: 8,
+  },
+  sortButtonActive: {
+    backgroundColor: '#4caf50',
   },
   sortButtonText: {
-    textAlign: 'center',
-    fontWeight: 'bold',
+    color: '#333',
+    fontSize: 16,
   },
   itemContainer: {
-    padding: 8,
-    backgroundColor: '#ffffff',
-    borderRadius: 5,
-    marginBottom: 8,
+    padding: 12,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    marginBottom: 10,
   },
-  itemText: {
+  itemLabel: {
     fontSize: 16,
-    marginVertical: 4,
+    fontWeight: 'bold',
+  },
+  itemRarity: {
+    fontSize: 14,
+    color: '#666',
+  },
+  itemCategory: {
+    fontSize: 14,
+    color: '#999',
   },
 });
 
