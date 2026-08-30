@@ -2,69 +2,63 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import { mergeItems } from '../services/mergeService';
 import { useInventory } from '../services/inventoryService';
-import { categories } from '../constants/categoryConstants';
+import { MergeItem } from '../types';
 
 const InventorySorter: React.FC = () => {
-  const [inventory, setInventory] = useInventory();
-  const [sortedInventory, setSortedInventory] = useState<any[]>([]);
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [sortedItems, setSortedItems] = useState<MergeItem[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const { inventory } = useInventory();
 
   useEffect(() => {
-    const sorted = categories.map(category => ({
-      category,
-      items: inventory.filter(item => item.category === category || selectedCategory === 'all')
-    }));
-    setSortedInventory(sorted);
-  }, [inventory, selectedCategory]);
+    if (inventory.length > 0) {
+      setIsLoading(true);
+      setError(null);
+      
+      // Sort items by level
+      const sorted = [...inventory].sort((a, b) => a.level - b.level);
+      setSortedItems(sorted);
+      setIsLoading(false);
+    }
+  }, [inventory]);
 
-  const handleMerge = (item: any) => {
-    mergeItems([item]);
+  const handleMerge = (item: MergeItem) => {
+    setIsLoading(true);
+    setError(null);
+    
+    mergeItems([item])
+      .then(() => {
+        setSortedItems(prevItems => prevItems.filter(i => i.id !== item.id));
+        setIsLoading(false);
+      })
+      .catch(err => {
+        setError('Failed to merge item. Please try again later.');
+        setIsLoading(false);
+      });
   };
 
   return (
     <View style={styles.container}>
-      <View style={styles.categorySelector}>
-        <Text style={styles.categoryTitle}>Sort by Category</Text>
-        <View style={styles.categoryOptions}>
-          {categories.map(category => (
+      <Text style={styles.title}>Inventory Sorted by Level</Text>
+      {isLoading ? (
+        <Text style={styles.loadingText}>Loading items...</Text>
+      ) : error ? (
+        <Text style={styles.errorText}>{error}</Text>
+      ) : (
+        <FlatList
+          data={sortedItems}
+          keyExtractor={item => item.id}
+          renderItem={({ item }) => (
             <TouchableOpacity
-              key={category}
-              style={[styles.categoryButton, selectedCategory === category && styles.selectedCategoryButton]}
-              onPress={() => setSelectedCategory(category)}
+              style={styles.itemContainer}
+              onPress={() => handleMerge(item)}
             >
-              <Text style={styles.categoryButtonText}>{category}</Text>
+              <Text style={styles.itemText}>{item.name} (Level {item.level})</Text>
             </TouchableOpacity>
-          ))}
-          <TouchableOpacity
-            style={[styles.categoryButton, selectedCategory === 'all' && styles.selectedCategoryButton]}
-            onPress={() => setSelectedCategory('all')}
-          >
-            <Text style={styles.categoryButtonText}>All</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-      <FlatList
-        data={sortedInventory}
-        keyExtractor={item => item.category}
-        renderItem={({ item }) => (
-          <View style={styles.categorySection}>
-            <Text style={styles.categoryLabel}>{item.category}</Text>
-            <FlatList
-              data={item.items}
-              keyExtractor={item => item.id}
-              renderItem={({ item: mergeItem }) => (
-                <TouchableOpacity
-                  style={styles.itemCard}
-                  onPress={() => handleMerge(mergeItem)}
-                >
-                  <Text style={styles.itemText}>{mergeItem.name}</Text>
-                  <Text style={styles.itemValue}>Value: {mergeItem.value}</Text>
-                </TouchableOpacity>
-              )}
-            />
-          </View>
-        )}
-      />
+          )}
+        />
+      )}
     </View>
   );
 };
@@ -75,56 +69,31 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: '#f5f5f5',
   },
-  categorySelector: {
-    marginBottom: 20,
-  },
-  categoryTitle: {
-    fontSize: 18,
+  title: {
+    fontSize: 24,
     fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: 16,
+    textAlign: 'center',
   },
-  categoryOptions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-  },
-  categoryButton: {
-    backgroundColor: '#e0e0e0',
-    padding: 8,
-    borderRadius: 8,
-    margin: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-    width: '48%',
-  },
-  selectedCategoryButton: {
-    backgroundColor: '#4caf50',
-  },
-  categoryButtonText: {
-    color: '#333',
-  },
-  categorySection: {
-    marginBottom: 20,
-  },
-  categoryLabel: {
+  loadingText: {
     fontSize: 16,
-    fontWeight: 'bold',
-    marginBottom: 8,
+    textAlign: 'center',
+    color: '#888',
   },
-  itemCard: {
-    backgroundColor: '#fff',
+  errorText: {
+    fontSize: 16,
+    textAlign: 'center',
+    color: 'red',
+  },
+  itemContainer: {
     padding: 12,
+    marginVertical: 8,
+    backgroundColor: '#fff',
     borderRadius: 8,
-    marginBottom: 12,
     elevation: 2,
   },
   itemText: {
     fontSize: 16,
-    fontWeight: 'bold',
-  },
-  itemValue: {
-    fontSize: 14,
-    color: '#555',
   },
 });
 
