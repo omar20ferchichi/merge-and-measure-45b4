@@ -1,43 +1,69 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
-import { useInventory } from '../services/InventoryService';
-
-interface InventoryItem {
-  id: string;
-  type: string;
-  count: number;
-}
+import { mergeItems } from '../services/mergeService';
+import { useInventory } from '../services/inventoryService';
+import { categories } from '../constants/categoryConstants';
 
 const InventorySorter: React.FC = () => {
-  const { items, sortItemsByType } = useInventory();
-  const [sortedItems, setSortedItems] = useState<InventoryItem[]>([]);
+  const [inventory, setInventory] = useInventory();
+  const [sortedInventory, setSortedInventory] = useState<any[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
-  const handleSort = () => {
-    const sorted = [...items].sort((a, b) => {
-      if (a.type < b.type) return -1;
-      if (a.type > b.type) return 1;
-      return 0;
-    });
-    setSortedItems(sorted);
+  useEffect(() => {
+    const sorted = categories.map(category => ({
+      category,
+      items: inventory.filter(item => item.category === category || selectedCategory === 'all')
+    }));
+    setSortedInventory(sorted);
+  }, [inventory, selectedCategory]);
+
+  const handleMerge = (item: any) => {
+    mergeItems([item]);
   };
-
-  const renderItem = ({ item }: { item: InventoryItem }) => (
-    <TouchableOpacity style={styles.itemContainer}>
-      <Text style={styles.itemType}>{item.type}</Text>
-      <Text style={styles.itemCount}>Count: {item.count}</Text>
-    </TouchableOpacity>
-  );
 
   return (
     <View style={styles.container}>
-      <TouchableOpacity style={styles.sortButton} onPress={handleSort}>
-        <Text style={styles.sortButtonText}>Sort by Type</Text>
-      </TouchableOpacity>
+      <View style={styles.categorySelector}>
+        <Text style={styles.categoryTitle}>Sort by Category</Text>
+        <View style={styles.categoryOptions}>
+          {categories.map(category => (
+            <TouchableOpacity
+              key={category}
+              style={[styles.categoryButton, selectedCategory === category && styles.selectedCategoryButton]}
+              onPress={() => setSelectedCategory(category)}
+            >
+              <Text style={styles.categoryButtonText}>{category}</Text>
+            </TouchableOpacity>
+          ))}
+          <TouchableOpacity
+            style={[styles.categoryButton, selectedCategory === 'all' && styles.selectedCategoryButton]}
+            onPress={() => setSelectedCategory('all')}
+          >
+            <Text style={styles.categoryButtonText}>All</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
       <FlatList
-        data={sortedItems}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContainer}
+        data={sortedInventory}
+        keyExtractor={item => item.category}
+        renderItem={({ item }) => (
+          <View style={styles.categorySection}>
+            <Text style={styles.categoryLabel}>{item.category}</Text>
+            <FlatList
+              data={item.items}
+              keyExtractor={item => item.id}
+              renderItem={({ item: mergeItem }) => (
+                <TouchableOpacity
+                  style={styles.itemCard}
+                  onPress={() => handleMerge(mergeItem)}
+                >
+                  <Text style={styles.itemText}>{mergeItem.name}</Text>
+                  <Text style={styles.itemValue}>Value: {mergeItem.value}</Text>
+                </TouchableOpacity>
+              )}
+            />
+          </View>
+        )}
       />
     </View>
   );
@@ -49,36 +75,56 @@ const styles = StyleSheet.create({
     padding: 16,
     backgroundColor: '#f5f5f5',
   },
-  sortButton: {
-    backgroundColor: '#007BFF',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-    alignItems: 'center',
+  categorySelector: {
+    marginBottom: 20,
   },
-  sortButtonText: {
-    color: 'white',
+  categoryTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  categoryOptions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  categoryButton: {
+    backgroundColor: '#e0e0e0',
+    padding: 8,
+    borderRadius: 8,
+    margin: 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '48%',
+  },
+  selectedCategoryButton: {
+    backgroundColor: '#4caf50',
+  },
+  categoryButtonText: {
+    color: '#333',
+  },
+  categorySection: {
+    marginBottom: 20,
+  },
+  categoryLabel: {
     fontSize: 16,
     fontWeight: 'bold',
+    marginBottom: 8,
   },
-  listContainer: {
-    paddingBottom: 20,
-  },
-  itemContainer: {
-    backgroundColor: '#ffffff',
+  itemCard: {
+    backgroundColor: '#fff',
     padding: 12,
-    marginVertical: 8,
     borderRadius: 8,
+    marginBottom: 12,
     elevation: 2,
   },
-  itemType: {
+  itemText: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#333333',
   },
-  itemCount: {
+  itemValue: {
     fontSize: 14,
-    color: '#666666',
+    color: '#555',
   },
 });
 
