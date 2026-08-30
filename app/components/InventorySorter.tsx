@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
 import { MergeItem } from '../../types';
 
 interface InventorySorterProps {
@@ -8,39 +8,72 @@ interface InventorySorterProps {
 }
 
 const InventorySorter: React.FC<InventorySorterProps> = ({ items, onSort }) => {
-  const [sortedItems, setSortedItems] = useState<MergeItem[]>([]);
-  const [sortBy, setSortBy] = useState<'value' | 'category'>('value');
+  const [sortBy, setSortBy] = useState<'rarity' | 'level'>('rarity');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
-  useEffect(() => {
-    let sorted = [...items];
-    if (sortBy === 'value') {
-      sorted.sort((a, b) => b.value - a.value);
+  const sortItems = (items: MergeItem[]): MergeItem[] => {
+    if (sortBy === 'rarity') {
+      return [...items].sort((a, b) => {
+        const rarityOrder = { common: 0, rare: 1, epic: 2, legendary: 3 };
+        return sortOrder === 'asc' 
+          ? rarityOrder[a.rarity] - rarityOrder[b.rarity] 
+          : rarityOrder[b.rarity] - rarityOrder[a.rarity];
+      });
     } else {
-      sorted.sort((a, b) => a.category.localeCompare(b.category));
+      return [...items].sort((a, b) => {
+        return sortOrder === 'asc' 
+          ? a.level - b.level 
+          : b.level - a.level;
+      });
     }
-    setSortedItems(sorted);
-  }, [items, sortBy]);
+  };
 
-  const handleSortBy = (type: 'value' | 'category') => {
-    setSortBy(type);
+  const handleSort = () => {
+    const sortedItems = sortItems(items);
+    onSort(sortedItems);
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.sortControls}>
-        <TouchableOpacity onPress={() => handleSortBy('value')}>
-          <Text style={styles.sortButton}>Sort by Value</Text>
+        <TouchableOpacity
+          style={sortBy === 'rarity' ? styles.sortButtonActive : styles.sortButton}
+          onPress={() => setSortBy('rarity')}
+        >
+          <Text style={sortBy === 'rarity' ? styles.sortButtonTextActive : styles.sortButtonText}>Sort by Rarity</Text>
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => handleSortBy('category')}>
-          <Text style={styles.sortButton}>Sort by Category</Text>
+        <TouchableOpacity
+          style={sortBy === 'level' ? styles.sortButtonActive : styles.sortButton}
+          onPress={() => setSortBy('level')}\n        >
+          <Text style={sortBy === 'level' ? styles.sortButtonTextActive : styles.sortButtonText}>Sort by Level</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={sortOrder === 'asc' ? styles.sortButtonActive : styles.sortButton}
+          onPress={() => setSortOrder('asc')}
+        >
+          <Text style={sortOrder === 'asc' ? styles.sortButtonTextActive : styles.sortButtonText}>Ascending</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={sortOrder === 'desc' ? styles.sortButtonActive : styles.sortButton}
+          onPress={() => setSortOrder('desc')}
+        >
+          <Text style={sortOrder === 'desc' ? styles.sortButtonTextActive : styles.sortButtonText}>Descending</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.sortButton}
+          onPress={handleSort}
+        >
+          <Text style={styles.sortButtonText}>Apply Sort</Text>
         </TouchableOpacity>
       </View>
       <FlatList
-        data={sortedItems}
-        keyExtractor={item => item.id}
+        data={sortItems(items)}
+        keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View style={styles.itemContainer}>
-            <Text style={styles.itemText}>{item.name} - {item.value} ({item.category})</Text>
+            <Text style={styles.itemLabel}>{item.name}</Text>
+            <Text style={styles.itemValue}>Rarity: {item.rarity}</Text>
+            <Text style={styles.itemValue}>Level: {item.level}</Text>
           </View>
         )}
       />
@@ -50,6 +83,7 @@ const InventorySorter: React.FC<InventorySorterProps> = ({ items, onSort }) => {
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     padding: 16,
     backgroundColor: '#f5f5f5',
   },
@@ -60,19 +94,39 @@ const styles = StyleSheet.create({
   },
   sortButton: {
     padding: 8,
+    marginHorizontal: 4,
     backgroundColor: '#e0e0e0',
-    borderRadius: 5,
-    textAlign: 'center',
+    borderRadius: 8,
+  },
+  sortButtonActive: {
+    padding: 8,
+    marginHorizontal: 4,
+    backgroundColor: '#4caf50',
+    borderRadius: 8,
+  },
+  sortButtonText: {
+    color: '#000',
+    fontSize: 14,
+  },
+  sortButtonTextActive: {
+    color: '#fff',
+    fontSize: 14,
   },
   itemContainer: {
-    padding: 8,
-    marginVertical: 4,
+    padding: 12,
     backgroundColor: '#fff',
-    borderRadius: 5,
+    borderRadius: 8,
+    marginBottom: 8,
     elevation: 2,
   },
-  itemText: {
+  itemLabel: {
     fontSize: 16,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  itemValue: {
+    fontSize: 14,
+    color: '#555',
   },
 });
 
