@@ -1,65 +1,54 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { useMergeContext } from '../context/MergeContext';
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+import { useDispatch, useSelector } from 'react-redux';
+import { setProgress, setDifficulty } from '../reducers/progressReducer';
+import { useFirebaseSync } from '../services/firebaseService';
 
 const ProgressTracker: React.FC = () => {
-  const { mergeCount, level, setLevel } = useMergeContext();
+  const { progress, saveProgress } = useFirebaseSync();
+  const dispatch = useDispatch();
+  const currentProgress = useSelector((state: { progress: ProgressState }) => state.progress.progress);
+  const currentDifficulty = useSelector((state: { progress: ProgressState }) => state.progress.difficulty);
 
-  const handleLevelUp = () => {
-    setLevel(prevLevel => prevLevel + 1);
+  const handleMerge = () => {
+    const newProgress = currentProgress + 1;
+    dispatch(setProgress(newProgress));
+    saveProgress(newProgress);
+    if (newProgress % 10 === 0) {
+      dispatch(setDifficulty(currentDifficulty + 1));
+    }
   };
 
   return (
     <View style={styles.container}>
-      <View style={styles.mergeCountContainer}>
-        <Text style={styles.mergeCountText}>Merges: {mergeCount}</Text>
-      </View>
-      <View style={styles.levelContainer}>
-        <Text style={styles.levelText}>Level {level}</Text>
-        <TouchableOpacity style={styles.levelUpButton} onPress={handleLevelUp}>
-          <Text style={styles.levelUpButtonText}>Level Up!</Text>
-        </TouchableOpacity>
-      </View>
+      <Text style={styles.label}>Progress: {currentProgress}</Text>
+      <Text style={styles.label}>Difficulty: {currentDifficulty}</Text>
+      <Text style={
+        styles.mergeButton
+      } onPress={handleMerge}>Merge Item</Text>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-  },
-  mergeCountContainer: {
-    marginBottom: 20,
-  },
-  mergeCountText: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  levelContainer: {
-    alignItems: 'center',
-  },
-  levelText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#555',
-    marginBottom: 10,
-  },
-  levelUpButton: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
+    padding: 16,
+    backgroundColor: '#f0f0f0',
     borderRadius: 8,
-    elevation: 3,
+    marginVertical: 16,
   },
-  levelUpButtonText: {
+  label: {
+    fontSize: 16,
+    marginBottom: 8,
+  },
+  mergeButton: {
+    backgroundColor: '#007bff',
+    padding: 12,
+    borderRadius: 6,
     color: 'white',
     fontSize: 16,
-    fontWeight: 'bold',
-  },
+    textAlign: 'center',
+  }
 });
 
 export default ProgressTracker;
