@@ -1,37 +1,47 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
-import { mergeItems } from '../../services/mergeService';
-import { useMergeContext } from '../../context/MergeContext';
-import { MergeItem } from '../../types/mergeTypes';
+import { MergeItem } from '../../types';
 
-const SortMergeItemsByBonus: React.FC = () => {
-  const { mergeItems: items, sortMergeItems } = useMergeContext();
+interface SortMergeItemsByBonusProps {
+  items: MergeItem[];
+  onSort: (sortedItems: MergeItem[]) => void;
+}
+
+const SortMergeItemsByBonus: React.FC<SortMergeItemsByBonusProps> = ({ items, onSort }) => {
   const [sortedItems, setSortedItems] = useState<MergeItem[]>([]);
+  const [isSorted, setIsSorted] = useState(false);
 
   useEffect(() => {
-    const sorted = [...items].sort((a, b) => b.bonus - a.bonus);
-    setSortedItems(sorted);
+    if (items.length > 0) {
+      const sorted = [...items].sort((a, b) => {
+        const bonusA = a.bonus || 0;
+        const bonusB = b.bonus || 0;
+        return bonusB - bonusA;
+      });
+      setSortedItems(sorted);
+      setIsSorted(true);
+    }
   }, [items]);
 
   const handleSort = () => {
-    sortMergeItems('bonus');
+    onSort(sortedItems);
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Sort Merge Items by Bonus</Text>
-      <TouchableOpacity style={styles.sortButton} onPress={handleSort}>
-        <Text style={styles.sortButtonText}>Sort by Bonus</Text>
-      </TouchableOpacity>
+      <Text style={styles.title}>Sort Merge Items by Stat Bonus</Text>
       <FlatList
         data={sortedItems}
-        keyExtractor={item => item.id}
+        keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View style={styles.itemContainer}>
             <Text style={styles.itemText}>{item.name} - Bonus: {item.bonus}</Text>
           </View>
         )}
       />
+      <TouchableOpacity style={styles.sortButton} onPress={handleSort}>
+        <Text style={styles.buttonText}>Sort by Bonus</Text>
+      </TouchableOpacity>
     </View>
   );
 };
@@ -39,32 +49,39 @@ const SortMergeItemsByBonus: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     padding: 16,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 5,
+    marginVertical: 10,
   },
   title: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 16,
-  },
-  sortButton: {
-    backgroundColor: '#007AFF',
-    padding: 12,
-    borderRadius: 8,
-    marginBottom: 16,
-  },
-  sortButtonText: {
-    color: 'white',
-    fontSize: 16,
-    textAlign: 'center',
+    marginBottom: 10,
   },
   itemContainer: {
-    padding: 12,
-    backgroundColor: '#ffffff',
-    borderRadius: 8,
-    marginBottom: 8,
+    padding: 10,
+    backgroundColor: '#f0f0f0',
+    borderRadius: 5,
+    marginBottom: 10,
   },
   itemText: {
     fontSize: 16,
+  },
+  sortButton: {
+    backgroundColor: '#007BFF',
+    padding: 12,
+    borderRadius: 5,
+    alignItems: 'center',
+  },
+  buttonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
 });
 
