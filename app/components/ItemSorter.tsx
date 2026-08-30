@@ -1,60 +1,50 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
 import { MergeItem } from '../../types';
-import { useInventory } from '../../services/inventoryService';
+import { useMergeContext } from '../../context/MergeContext';
 
 const ItemSorter: React.FC = () => {
-  const { inventory, sortItemsByAttribute } = useInventory();
+  const { mergeItems, sortItemsByStat } = useMergeContext();
   const [sortedItems, setSortedItems] = useState<MergeItem[]>([]);
-  const [activeFilter, setActiveFilter] = useState<string>('all');
+  const [selectedStat, setSelectedStat] = useState<string>('value');
 
   useEffect(() => {
-    const filteredItems = activeFilter === 'all' 
-      ? inventory 
-      : inventory.filter(item => item.attributes.includes(activeFilter));
+    setSortedItems(sortItemsByStat(selectedStat));
+  }, [mergeItems, selectedStat]);
 
-    setSortedItems(filteredItems);
-  }, [inventory, activeFilter]);
-
-  const handleSortByAttribute = (attribute: string) => {
-    setActiveFilter(attribute);
-    sortItemsByAttribute(attribute);
+  const handleSortChange = (stat: string) => {
+    setSelectedStat(stat);
   };
 
   return (
     <View style={styles.container}>
-      <View style={styles.filterContainer}>
+      <Text style={styles.title}>Sort by Stat</Text>
+      <View style={styles.sortOptionsContainer}>
         <TouchableOpacity
-          style={styles.filterButton}
-          onPress={() => handleSortByAttribute('all')}
-          accessible={true}
-          accessibilityLabel="Show all items"
+          style={styles.sortOption}
+          onPress={() => handleSortChange('value')}
         >
-          <Text style={styles.filterText}>All</Text>
+          <Text style={styles.sortOptionText}>Value</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.filterButton}
-          onPress={() => handleSortByAttribute('rare')}
-          accessible={true}
-          accessibilityLabel="Show rare items"
+          style={styles.sortOption}
+          onPress={() => handleSortChange('weight')}
         >
-          <Text style={styles.filterText}>Rare</Text>
+          <Text style={styles.sortOptionText}>Weight</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          style={styles.filterButton}
-          onPress={() => handleSortBy, accessible={true}
-          accessibilityLabel="Show common items"
+          style={styles.sortOption}
+          onPress={() => handleSortChange('size')}
         >
-          <Text style={styles.filterText}>Common</Text>
+          <Text style={styles.sortOptionText}>Size</Text>
         </TouchableOpacity>
       </View>
       <FlatList
         data={sortedItems}
-        keyExtractor={item => item.id}
+        keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <View style={styles.itemContainer}>
-            <Text style={styles.itemText}>{item.name}</Text>
-            <Text style={styles.itemAttribute}>{item.attributes.join(', ')}</Text>
+            <Text>{item.name} - {item.stat}: {item.value}</Text>
           </View>
         )}
       />
@@ -64,41 +54,35 @@ const ItemSorter: React.FC = () => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     padding: 16,
     backgroundColor: '#f5f5f5',
   },
-  filterContainer: {
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 16,
+  },
+  sortOptionsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: 16,
   },
-  filterButton: {
-    flex: 1,
-    marginHorizontal: 8,
+  sortOption: {
     padding: 10,
     backgroundColor: '#e0e0e0',
     borderRadius: 8,
-    alignItems: 'center',
+    flex: 1,
+    marginHorizontal: 4,
   },
-  filterText: {
-    fontSize: 16,
+  sortOptionText: {
+    textAlign: 'center',
     fontWeight: 'bold',
   },
   itemContainer: {
-    padding: 12,
-    marginVertical: 8,
+    padding: 10,
     backgroundColor: '#ffffff',
+    marginBottom: 8,
     borderRadius: 8,
-    elevation: 2,
-  },
-  itemText: {
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  itemAttribute: {
-    fontSize: 14,
-    color: '#555555',
   },
 });
 
