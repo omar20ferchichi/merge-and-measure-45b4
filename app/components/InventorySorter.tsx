@@ -1,91 +1,177 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
-import { MergeItem } from '../../types';
-import { useMergeContext } from '../../context/MergeContext';
+import { mergeItem } from '../services/mergeService';
+import { rarityColors } from '../utils/colors';
 
-interface InventorySorterProps {
-  onSort: (sortedItems: MergeItem[]) => void;
+interface InventoryItem {
+  id: string;
+  name: string;
+  rarity: 'common' | 'rare' | 'epic' | 'legendary';
+  value: number;
 }
 
-const InventorySorter: React.FC<InventorySorterProps> = ({ onSort }) => {
-  const { mergeItems } = useMergeContext();
-  const [sortedItems, setSortedItems] = useState<MergeItem[]>([]);
+const InventorySorter: React.FC<{ items: InventoryItem[] }> = ({ items }) => {
+  const [sortedItems, setSortedItems] = useState<InventoryItem[]>([]);
+  const [selectedRarity, setSelectedRarity] = useState<'all' | 'common' | 'rare' | 'epic' | 'legendary'>('all');
+  const [selectedSort, setSelectedSort] = useState<'value' | 'rarity'>('value');
 
   useEffect(() => {
-    if (mergeItems.length > 0) {
-      const sorted = [...mergeItems].sort((a, b) => {
-        const skillBonusA = a.skillBonus || 0;
-        const skillBonusB = b.skillBonus || 0;
-        return skillBonusB - skillBonusA;
+    const sorted = [...items];
+    if (selectedSort === 'value') {
+      sorted.sort((a, b) => b.value - a.value);
+    } else {
+      sorted.sort((a, b) => {
+        const rarityOrder = ['common', 'rare', 'epic', 'legendary'];
+        return rarityOrder.indexOf(a.rarity) - rarityOrder.indexOf(b.rarity);
       });
+    }
+
+    if (selectedRarity !== 'all') {
+      setSortedItems(sorted.filter(item => item.rarity === selectedRarity));
+    } else {
       setSortedItems(sorted);
     }
-  }, [mergeItems]);
-
-  const handleSort = () => {
-    onSort(sortedItems);
-  };
+  }, [items, selectedSort, selectedRarity]);
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Sort by Skill Bonus</Text>
+      <View style={styles.filtersContainer}>
+        <TouchableOpacity
+          style={[styles.filterButton, selectedSort === 'value' && styles.filterButtonActive]}
+          onPress={() => setSelectedSort('value')}
+        >
+          <Text style={styles.filterButtonText}>Sort by Value</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.filterButton, selectedSort === 'rarity' && styles.filterButtonActive]}
+          onPress={() => setSelectedSort('rarity')}
+        >
+          <Text style={styles.filterButtonText}>Sort by Rarity</Text>
+        </TouchableOpacity>
+      </View>
+      <View style={styles.rarityFiltersContainer}>
+        <TouchableOpacity
+          style={[styles.rarityFilterButton, selectedRarity === 'all' && styles.rarityFilterButtonActive]}
+          onPress={() => setSelectedRarity('all')}
+        >
+          <Text style={styles.rarityFilterButtonText}>All</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.randityFilterButton, selectedRarity === 'common' && styles.rarityFilterButtonActive]}
+          onPress={() => setSelectedRarity('common')}
+        >
+          <Text style={styles.rarityFilterButtonText}>Common</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.rarityFilterButton, selectedRarity === 'rare' && styles.rarityFilterButtonActive]}
+          onPress={() => setSelectedRarity('rare')}
+        >
+          <Text style={styles.rarityFilterButtonText}>Rare</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.rarityFilterButton, selectedRarity === 'epic' && styles.rarityFilterButtonActive]}
+          onPress={() => setSelectedRarity('epic')}
+        >
+          <Text style={styles.rarityFilterButtonText}>Epic</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.rarityFilterButton, selectedRarity === 'legendary' && styles.rarityFilterButtonActive]}
+          onPress={() => setSelectedRarity('legendary')}
+        >
+          <Text style={styles.rarityFilterButtonText}>Legendary</Text>
+        </TouchableOpacity>
+      </View>
       <FlatList
         data={sortedItems}
-        keyExtractor={(item) => item.id}
+        keyExtractor={item => item.id}
         renderItem={({ item }) => (
-          <TouchableOpacity style={styles.itemCard}>
+          <View style={styles.itemContainer}>
             <Text style={styles.itemName}>{item.name}</Text>
-            <Text style={styles.skillBonus}>Skill Bonus: {item.skillBonus || 0}</Text>
-          </TouchableOpacity>
+            <Text style={styles.itemValue}>Value: {item.value}</Text>
+            <Text style={styles.itemRarity}>{item.rarity}</Text>
+            <TouchableOpacity
+              style={styles.mergeButton}
+              onPress={() => mergeItem(item.id)}
+            >
+              <Text style={styles.mergeButtonText}>Merge</Text>
+            </TouchableOpacity>
+          </View>
         )}
       />
-      <TouchableOpacity style={styles.sortButton} onPress={handleSort}>
-        <Text style={styles.sortButtonText}>Sort Inventory</Text>
-      </TouchableOpacity>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
     padding: 16,
     backgroundColor: '#f5f5f5',
   },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
+  filtersContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginBottom: 16,
-    textAlign: 'center',
   },
-  itemCard: {
+  filterButton: {
+    padding: 8,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 8,
+    marginHorizontal: 4,
+  },
+  filterButtonActive: {
+    backgroundColor: '#4caf50',
+  },
+  filterButtonText: {
+    color: '#000',
+    fontWeight: 'bold',
+  },
+  rarityFiltersContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  rarityFilterButton: {
+    padding: 8,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 8,
+    marginHorizontal: 4,
+  },
+  rarityFilterButtonActive: {
+    backgroundColor: '#2196f3',
+  },
+  rarityFilterButtonText: {
+    color: '#000',
+    fontWeight: 'bold',
+  },
+  itemContainer: {
+    padding: 16,
     backgroundColor: '#fff',
-    padding: 12,
-    marginVertical: 8,
+    marginBottom: 16,
     borderRadius: 8,
     elevation: 2,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
   },
   itemName: {
     fontSize: 18,
     fontWeight: 'bold',
+    marginBottom: 8,
   },
-  skillBonus: {
-    fontSize: 14,
-    color: '#555',
-  },
-  sortButton: {
-    backgroundColor: '#007BFF',
-    padding: 12,
-    borderRadius: 8,
-    marginTop: 16,
-    alignItems: 'center',
-  },
-  sortButtonText: {
-    color: '#fff',
+  itemValue: {
     fontSize: 16,
+    color: '#333',
+    marginBottom: 4,
+  },
+  itemRarity: {
+    fontSize: 14,
+    color: rarityColors[item.rarity],
+    marginBottom: 8,
+  },
+  mergeButton: {
+    padding: 8,
+    backgroundColor: '#f44336',
+    borderRadius: 8,
+  },
+  mergeButtonText: {
+    color: '#fff',
     fontWeight: 'bold',
   },
 });
