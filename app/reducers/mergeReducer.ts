@@ -1,7 +1,9 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { useAuthState } from '../services/firebaseService';
 
 interface MergeState {
   mergeCount: number;
+  lastMergeTimestamp: string;
   isMerging: boolean;
   mergeSuccess: boolean;
   mergeFailure: boolean;
@@ -9,9 +11,10 @@ interface MergeState {
 
 const initialState: MergeState = {
   mergeCount: 0,
+  lastMergeTimestamp: '',
   isMerging: false,
   mergeSuccess: false,
-  mergeFailure: false,
+  mergeFailure: false
 };
 
 export const mergeSlice = createSlice({
@@ -20,29 +23,37 @@ export const mergeSlice = createSlice({
   reducers: {
     startMerge: (state) => {
       state.isMerging = true;
-      state.mergeSuccess = false;
-      state.mergeFailure = false;
     },
-    successMerge: (state, action: PayloadAction<number>) => {
-      state.mergeCount = action.payload;
+    completeMerge: (state) => {
       state.isMerging = false;
       state.mergeSuccess = true;
       state.mergeFailure = false;
     },
-    failureMerge: (state, action: PayloadAction<number>) => {
-      state.mergeCount = action.payload;
+    failMerge: (state) => {
       state.isMerging = false;
       state.mergeSuccess = false;
       state.mergeFailure = true;
     },
     resetMerge: (state) => {
-      state.mergeCount = 0;
       state.isMerging = false;
       state.mergeSuccess = false;
       state.mergeFailure = false;
-    },
+    }
   },
+  extraReducers: (builder) => {
+    builder
+      .addCase(trackMergeSuccess.pending, (state, action) => {
+        state.mergeCount += 1;
+        state.lastMergeTimestamp = new Date().toISOString();
+        state.mergeSuccess = true;
+      })
+      .addCase(trackMergeFailure.pending, (state, action) => {
+        state.mergeCount += 1;
+        state.lastMergeTimestamp = new Date().toISOString();
+        state.mergeFailure = true;
+      });
+  }
 });
 
-export const { startMerge, successMerge, failureMerge, resetMerge } = mergeSlice.actions;
+export const { startMerge, completeMerge, failMerge, resetMerge } = mergeSlice.actions;
 export default mergeSlice.reducer;
