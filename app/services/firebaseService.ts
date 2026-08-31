@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
+import { getFirestore, collection, doc, setDoc, getDocs, query, where, deleteDoc } from 'firebase/firestore';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { useEffect, useState } from 'react';
 
@@ -18,34 +18,77 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// Firebase service for progress sync
+export interface PlayerProgress {
+  mergeCount: number;
+  currentMeasurement: number;
+  difficultyLevel: number;
+  lastEventTimestamp: number;
+  eventsHistory: string[];
+}
+
 export const useFirebaseSync = () => {
-  const [user, setUser] = useState(null);
-  const [progress, setProgress] = useState(0);
+  const [user, setUser] = useState<any>(null);
+  const [progress, setProgress] = useState<PlayerProgress | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       if (user) {
-        const docRef = doc(db, 'users', user.uid);
-        getDoc(docRef).then((docSnap) => {
-          if (docSnap.exists()) {
-            setProgress(docSnap.data().progress || 0);
+        const userRef = doc(db, 'players', user.uid);
+        getDocs(query(collection(db, 'players'), where('uid', '==', user.uid))).then((querySnapshot) => {
+          if (!querySnapshot.empty) {
+            const playerData = querySnapshot.docs[0].data() as PlayerProgress;
+            setProgress(playerData);
+          } else {
+            // Create new player record if not exists
+            setDoc(userRef, {
+              mergeCount: 0,
+              currentMeasurement: 0,
+              difficultyLevel: 1,
+              lastEventTimestamp: Date.now(),
+              eventsHistory: []
+            });
+            setProgress({
+              mergeCount: 0,
+              currentMeasurement: 0,
+              difficultyLevel: 1,
+              lastEventTimestamp: Date.now(),
+              eventsHistory: []
+            });
           }
+          setLoading(false);
         });
+      } else {
+        setLoading(false);
       }
     });
+
     return () => unsubscribe();
   }, []);
 
-  // Save progress to Firebase
-  const saveProgress = async (newProgress: number) => {
+  const updateProgress = (newProgress: Partial<PlayerProgress>) => {
     if (user) {
-      const docRef = doc(db, 'users', user.uid);
-      await updateDoc(docRef, { progress: newProgress });
-      setProgress(newProgress);
+      const userRef = doc(db, 'players', user.uid);
+      setDoc(userRef, {
+        ...progress,
+        ...newProgress,
+        lastEventTimestamp: Date.now()
+      });
     }
   };
 
-  return { user, progress, saveProgress };
+  const triggerRandomEvent = async () => {
+    if (user) {
+      const userRef = doc(db, 'players', user.uid);
+      const eventsHistory = [...(progress?.eventsHistory || []), `Random Event Triggered at ${new Date().toISOString()}`];
+      await setDoc(userRef, {
+        ...progress,
+        eventsHistory,
+        lastEventTimestamp: Date.now()
+      });
+    }
+  };
+
+  return { user, progress, loading, updateProgress, triggerRandomEvent };
 };
