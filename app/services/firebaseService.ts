@@ -3,6 +3,7 @@ import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc } from 'firebas
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { useEffect, useState } from 'react';
 
+// Firebase configuration
 const firebaseConfig = {
   apiKey: 'YOUR_API_KEY',
   authDomain: 'YOUR_PROJECT_ID.firebaseapp.com',
@@ -12,13 +13,21 @@ const firebaseConfig = {
   appId: 'YOUR_APP_ID'
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-export const useFirebaseMergeCount = () => {
-  const [mergeCount, setMergeCount] = useState(0);
+export interface ProgressData {
+  mergeCount: number;
+  difficultyLevel: number;
+  lastMergeTimestamp: number;
+  randomEvents: string[];
+}
+
+export const useFirebaseProgress = () => {
   const [user, setUser] = useState(null);
+  const [progress, setProgress] = useState<ProgressData | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -27,31 +36,14 @@ export const useFirebaseMergeCount = () => {
         const docRef = doc(db, 'users', user.uid);
         getDoc(docRef).then((docSnap) => {
           if (docSnap.exists()) {
-            setMergeCount(docSnap.data().mergeCount || 0);
-          }
-        });
-      }
-    });
-    return () => unsubscribe();
-  }, []);
-
-  const incrementMergeCount = async () => {
-    if (user) {
-      const docRef = doc(db, 'users', user.uid);
-      await updateDoc(docRef, {
-        mergeCount: mergeCount + 1
-      });
-      setMergeCount(mergeCount + 1);
-    }
-  };
-
-  const resetMergeCount = async () => {
-    if (user) {
-      const docRef = doc(db, 'users', user.uid);
-      await deleteDoc(docRef);
-      setMergeCount(0);
-    }
-  };
-
-  return { mergeCount, incrementMergeCount, resetMergeCount };
-};
+            setProgress(docSnap.data() as ProgressData);
+          } else {
+            // Initialize new progress
+            const initialProgress: ProgressData = {
+              mergeCount: 0,
+              difficultyLevel: 1,
+              lastMergeTimestamp: Date.now(),
+              randomEvents: []
+            };
+            setDoc(docRef, initialProgress);
+            setProgress(initial
