@@ -1,41 +1,84 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { useFirebaseSync } from '../services/firebaseService';
+import { saveProgress, loadProgress, updateProgress, deleteProgress } from '../services/firebaseService';
 
-// Define the state type
 interface ProgressState {
-  mergeCount: number;
-  difficulty: number;
-  events: any[];
+  progress: number;
+  isLoading: boolean;
+  error: string | null;
 }
 
-// Initialize state from Firebase
 const initialState: ProgressState = {
-  mergeCount: 0,
-  difficulty: 1,
-  events: []
+  progress: 0,
+  isLoading: false,
+  error: null
 };
 
-export const progressSlice = createSlice({
+const progressSlice = createSlice({
   name: 'progress',
   initialState,
   reducers: {
-    incrementMergeCount(state, action: PayloadAction<number>) {
-      state.mergeCount += action.payload;
-      state.difficulty = Math.min(10, state.difficulty + Math.floor(state.mergeCount / 100));
+    setProgress: (state, action: PayloadAction<number>) => {
+      state.progress = action.payload;
     },
-    addEvent(state, action: PayloadAction<any>) {
-      state.events.push(action.payload);
+    setLoading: (state, action: PayloadAction<boolean>) => {
+      state.isLoading = action.payload;
+    },
+    setError: (state, action: PayloadAction<string | null>) => {
+      state.error = action.payload;
     }
   },
   extraReducers: (builder) => {
     builder
-      .addCase(useFirebaseSync.actions.saveProgress, (state, action) => {
-        state.mergeCount = action.payload.mergeCount;
-        state.difficulty = action.payload.difficulty;
-        state.events = action.payload.events;
+      .addCase(saveProgress.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(saveProgress.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.progress = action.payload;
+      })
+      .addCase(saveProgress.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload || 'Failed to save progress';
+      })
+      .addCase(loadProgress.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(loadProgress.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.progress = action.payload || 0;
+      })
+      .addCase(loadProgress.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload || 'Failed to load progress';
+      })
+      .addCase(updateProgress.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(updateProgress.fulfilled, (state, action) => {
+        state.isLoading = false;
+        state.progress = action.payload;
+      })
+      .addCase(updateProgress.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload || 'Failed to update progress';
+      })
+      .addCase(deleteProgress.pending, (state) => {
+        state.isLoading = true;
+        state.error = null;
+      })
+      .addCase(deleteProgress.fulfilled, (state) => {
+        state.isLoading = false;
+        state.progress = 0;
+      })
+      .addCase(deleteProgress.rejected, (state, action) => {
+        state.isLoading = false;
+        state.error = action.payload || 'Failed to delete progress';
       });
   }
 });
 
-export const { incrementMergeCount, addEvent } = progressSlice.actions;
+export const { setProgress, setLoading, setError } = progressSlice.actions;
 export default progressSlice.reducer;
