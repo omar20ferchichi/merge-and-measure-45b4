@@ -1,27 +1,41 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { useFirebaseSync } from '../services/firebaseService';
 
-export interface ProgressState {
-  progress: number;
+// Define the state type
+interface ProgressState {
+  mergeCount: number;
   difficulty: number;
+  events: any[];
 }
 
+// Initialize state from Firebase
 const initialState: ProgressState = {
-  progress: 0,
-  difficulty: 1
+  mergeCount: 0,
+  difficulty: 1,
+  events: []
 };
 
 export const progressSlice = createSlice({
   name: 'progress',
   initialState,
   reducers: {
-    setProgress: (state, action: PayloadAction<number>) => {
-      state.progress = action.payload;
+    incrementMergeCount(state, action: PayloadAction<number>) {
+      state.mergeCount += action.payload;
+      state.difficulty = Math.min(10, state.difficulty + Math.floor(state.mergeCount / 100));
     },
-    setDifficulty: (state, action: PayloadAction<number>) => {
-      state.difficulty = action.payload;
+    addEvent(state, action: PayloadAction<any>) {
+      state.events.push(action.payload);
     }
+  },
+  extraReducers: (builder) => {
+    builder
+      .addCase(useFirebaseSync.actions.saveProgress, (state, action) => {
+        state.mergeCount = action.payload.mergeCount;
+        state.difficulty = action.payload.difficulty;
+        state.events = action.payload.events;
+      });
   }
 });
 
-export const { setProgress, setDifficulty } = progressSlice.actions;
+export const { incrementMergeCount, addEvent } = progressSlice.actions;
 export default progressSlice.reducer;
