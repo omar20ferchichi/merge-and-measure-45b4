@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { getFirestore, collection, doc, setDoc, getDocs, query, where, deleteDoc } from 'firebase/firestore';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { useEffect, useState } from 'react';
 
@@ -18,32 +18,81 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-export interface ProgressData {
-  mergeCount: number;
-  difficultyLevel: number;
-  lastMergeTimestamp: number;
-  randomEvents: string[];
-}
+// Firebase service for difficulty scaling tracking
+export const FirebaseService = {
+  init: () => {
+    // Initialize Firebase
+  },
+  
+  // Track difficulty scaling state
+  trackDifficultyScaling: async (userId: string, difficultyLevel: number, progress: number) => {
+    try {
+      const userDocRef = doc(db, 'users', userId);
+      await setDoc(userDocRef, {
+        difficultyLevel: difficultyLevel,
+        progress: progress,
+        lastUpdated: new Date()
+      }, { merge: true });
+    } catch (error) {
+      console.error('Error tracking difficulty scaling:', error);
+    }
+  },
+  
+  // Get user difficulty scaling state
+  getUserDifficultyScaling: async (userId: string) => {
+    try {
+      const userDocRef = doc(db, 'users', userId);
+      const userDoc = await getDocs(query(collection(db, 'users'), where('userId', '==', userId)));
+      if (!userDoc.empty) {
+        const userDocData = userDoc.docs[0].data();
+        return {
+          difficultyLevel: userDocData.difficultyLevel || 1,
+          progress: userDocData.progress || 0,
+          lastUpdated: userDocData.lastUpdated || new Date()
+        };
+      }
+      return { difficultyLevel: 1, progress: 0, lastUpdated: new Date() };
+    } catch (error) {
+      console.error('Error fetching user difficulty scaling:', error);
+      return { difficultyLevel: 1, progress: 0, lastUpdated: new Date() };
+    }
+  },
+  
+  // Update user difficulty scaling state
+  updateUserDifficultyScaling: async (userId: string, difficultyLevel: number, progress: number) => {
+    try {
+      const userDocRef = doc(db, 'users', userId);
+      await setDoc(userDocRef, {
+        difficultyLevel: difficultyLevel,
+        progress: progress,
+        lastUpdated: new Date()
+      }, { merge: true });
+    } catch (error) {
+      console.error('Error updating difficulty scaling:', error);
+    }
+  },
+  
+  // Delete user difficulty scaling data
+  deleteUserDifficultyScaling: async (userId: string) => {
+    try {
+      const userDocRef = doc(db, 'users', userId);
+      await deleteDoc(userDocRef);
+    } catch (error) {
+      console.error('Error deleting difficulty scaling data:', error);
+    }
+  }
+};
 
-export const useFirebaseProgress = () => {
+// Firebase auth state listener
+export const useAuth = () => {
   const [user, setUser] = useState(null);
-  const [progress, setProgress] = useState<ProgressData | null>(null);
-
+  
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
-      if (user) {
-        const docRef = doc(db, 'users', user.uid);
-        getDoc(docRef).then((docSnap) => {
-          if (docSnap.exists()) {
-            setProgress(docSnap.data() as ProgressData);
-          } else {
-            // Initialize new progress
-            const initialProgress: ProgressData = {
-              mergeCount: 0,
-              difficultyLevel: 1,
-              lastMergeTimestamp: Date.now(),
-              randomEvents: []
-            };
-            setDoc(docRef, initialProgress);
-            setProgress(initial
+    });
+    return () => unsubscribe();
+  }, []);
+  
+  return user;
+};
