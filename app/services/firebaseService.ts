@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getDatabase, ref, onValue, set, update, remove } from 'firebase/database';
+import { getFirestore, collection, doc, setDoc, getDoc, deleteDoc, updateDoc, onSnapshot } from 'firebase/firestore';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { useEffect, useState } from 'react';
 
@@ -7,7 +7,6 @@ import { useEffect, useState } from 'react';
 const firebaseConfig = {
   apiKey: 'YOUR_API_KEY',
   authDomain: 'YOUR_PROJECT_ID.firebaseapp.com',
-  databaseURL: 'https://YOUR_PROJECT_ID.firebaseio.com',
   projectId: 'YOUR_PROJECT_ID',
   storageBucket: 'YOUR_PROJECT_ID.appspot.com',
   messagingSenderId: 'YOUR_SENDER_ID',
@@ -16,66 +15,68 @@ const firebaseConfig = {
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+const db = getFirestore(app);
 const auth = getAuth(app);
 
-export const useFirebaseSync = () => {
-  const [user, setUser] = useState(null);
-  const [randomEvents, setRandomEvents] = useState([]);
+// Sync difficulty state with Firebase
+export const syncDifficultyState = async (userId: string, difficulty: number) => {
+  try {
+    const userDocRef = doc(db, 'users', userId);
+    await setDoc(userDocRef, { difficulty }, { mergeFields: true });
+    console.log('Difficulty state synced with Firebase');
+  } catch (error) {
+    console.error('Error syncing difficulty state with Firebase:', error);
+  }
+};
 
-  useEffect(() => {
-    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
-      setUser(user);
-      if (user) {
-        const eventsRef = ref(db, `users/${user.uid}/randomEvents`);
-        onValue(eventsRef, (snapshot) => {
-          const eventsData = snapshot.val();
-          if (eventsData) {
-            setRandomEvents(Object.entries(eventsData).map(([id, event]) => ({ id, ...event })));
-          } else {
-            setRandomEvents([]);
-          }
-        });
-      }
-    });
-
-    return () => {
-      unsubscribeAuth();
-    };
-  }, []);
-
-  const triggerRandomEvent = (eventData) => {
-    if (user) {
-      const eventsRef = ref(db, `users/${user.uid}/randomEvents`);
-      const newEvent = {
-        id: Date.now().toString(),
-        ...eventData,
-        timestamp: Date.now()
-      };
-      set(eventsRef, { [newEvent.id]: newEvent });
+// Get difficulty state from Firebase
+export const getDifficultyState = async (userId: string): Promise<number | null> => {
+  try {
+    const userDocRef = doc(db, 'users', userId);
+    const docSnap = await getDoc(userDoc
+    if (docSnap.exists()) {
+      const difficulty = docSnap.data().difficulty || 0;
+      return difficulty;
+    } else {
+      return null;
     }
-  };
+  } catch (error) {
+    console.error('Error fetching difficulty state from Firebase:', error);
+    return null;
+  }
+};
 
-  const updateRandomEvent = (eventId, updatedData) => {
-    if (user) {
-      const eventRef = ref(db, `users/${user.uid}/random
-
-      update(eventRef, { [eventId]: { ...updatedData } });
+// Listen for difficulty state changes
+export const listenForDifficultyState = (userId: string, onUpdate: (difficulty: number) => void) => {
+  const userDocRef = doc(db, 'users', userId);
+  return onSnapshot(userDocRef, (docSnap) => {
+    if (docSnap.exists()) {
+      const difficulty = doc
+      onUpdate(difficulty);
+    } else {
+      console.log('No such document!');
     }
-  };
+  });
+};
 
-  const removeRandomEvent = (eventId) => {
-    if (user) {
-      const eventRef = ref(db, `users/${user.uid}/randomEvents`);
-      remove(eventRef.child(eventId));
-    }
-  };
+// Update difficulty state after merge
+export const updateDifficultyAfterMerge = async (userId: string, currentDifficulty: number) => {
+  try {
+    const userDocRef = doc(db, 'users', userId);
+    await updateDoc(userDocRef, { difficulty: currentDifficulty + 1 });
+    console.log('Difficulty state updated after merge');
+  } catch (error) {
+    console.error('Error updating difficulty state after merge:', error);
+  }
+};
 
-  return {
-    user,
-    randomEvents,
-    triggerRandomEvent,
-    updateRandomEvent,
-    removeRandomEvent
-  };
+// Delete difficulty state (for testing)
+export const deleteDifficultyState = async (userId: string) => {
+  try {
+    const userDocRef = doc(db, 'users', userId);
+    await deleteDoc(userDocRef);
+    console.log('Difficulty state deleted');
+  } catch (error) {
+    console.error('Error deleting difficulty state:', error);
+  }
 };
