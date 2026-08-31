@@ -1,98 +1,76 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, doc, setDoc, getDocs, query, where, deleteDoc } from 'firebase/firestore';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import { useEffect, useState } from 'react';
+import { getAnalytics, logEvent } from 'firebase/analytics';
+import { getDatabase, ref, set, onValue, push } from 'firebase/database';
 
-// Firebase configuration
 const firebaseConfig = {
   apiKey: 'YOUR_API_KEY',
   authDomain: 'YOUR_PROJECT_ID.firebaseapp.com',
+  databaseURL: 'https://YOUR_PROJECT_ID.firebaseio.com',
   projectId: 'YOUR_PROJECT_ID',
   storageBucket: 'YOUR_PROJECT_ID.appspot.com',
   messagingSenderId: 'YOUR_SENDER_ID',
-  appId: 'YOUR_APP_ID'
+  appId: 'YOUR_APP_ID',
+  measurementId: 'YOUR_MEASUREMENT_ID'
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
+const analytics = getAnalytics(app);
+const database = getDatabase(app);
 
-// Firebase service for difficulty scaling tracking
-export const FirebaseService = {
-  init: () => {
-    // Initialize Firebase
-  },
-  
-  // Track difficulty scaling state
-  trackDifficultyScaling: async (userId: string, difficultyLevel: number, progress: number) => {
-    try {
-      const userDocRef = doc(db, 'users', userId);
-      await setDoc(userDocRef, {
-        difficultyLevel: difficultyLevel,
-        progress: progress,
-        lastUpdated: new Date()
-      }, { merge: true });
-    } catch (error) {
-      console.error('Error tracking difficulty scaling:', error);
-    }
-  },
-  
-  // Get user difficulty scaling state
-  getUserDifficultyScaling: async (userId: string) => {
-    try {
-      const userDocRef = doc(db, 'users', userId);
-      const userDoc = await getDocs(query(collection(db, 'users'), where('userId', '==', userId)));
-      if (!userDoc.empty) {
-        const userDocData = userDoc.docs[0].data();
-        return {
-          difficultyLevel: userDocData.difficultyLevel || 1,
-          progress: userDocData.progress || 0,
-          lastUpdated: userDocData.lastUpdated || new Date()
-        };
-      }
-      return { difficultyLevel: 1, progress: 0, lastUpdated: new Date() };
-    } catch (error) {
-      console.error('Error fetching user difficulty scaling:', error);
-      return { difficultyLevel: 1, progress: 0, lastUpdated: new Date() };
-    }
-  },
-  
-  // Update user difficulty scaling state
-  updateUserDifficultyScaling: async (userId: string, difficultyLevel: number, progress: number) => {
-    try {
-      const userDocRef = doc(db, 'users', userId);
-      await setDoc(userDocRef, {
-        difficultyLevel: difficultyLevel,
-        progress: progress,
-        lastUpdated: new Date()
-      }, { merge: true });
-    } catch (error) {
-      console.error('Error updating difficulty scaling:', error);
-    }
-  },
-  
-  // Delete user difficulty scaling data
-  deleteUserDifficultyScaling: async (userId: string) => {
-    try {
-      const userDocRef = doc(db, 'users', userId);
-      await deleteDoc(userDocRef);
-    } catch (error) {
-      console.error('Error deleting difficulty scaling data:', error);
-    }
-  }
+export const logMergeSuccess = () => {
+  logEvent(analytics, 'merge_success');
 };
 
-// Firebase auth state listener
-export const useAuth = () => {
-  const [user, setUser] = useState(null);
-  
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+export const logMergeFailed = () => {
+  logEvent(analytics, 'merge_failed');
+};
+
+export const logRandomEventTriggered = () => {
+  logEvent(analytics, 'random_event_triggered');
+};
+
+export const logAdRewarded = () => {
+  logEvent(analytics, 'ad_rewarded');
+};
+
+export const logAdInterstitialShown = () => {
+  log,analytics, 'ad_interstitial_shown');
+};
+
+export const logAdsRemovedPurchased = () => {
+  logEvent(analytics, 'ads_removed_purchased');
+};
+
+export const saveProgress = (userId: string, progress: number) => {
+  const progressRef = ref(database, `users/${userId}/progress`);
+  set(progressRef, progress);
+};
+
+export const getProgress = (userId: string): Promise<number> => {
+  return new Promise((resolve, reject) => {
+    const progressRef = ref(database, `users/${userId}/progress`);
+    onValue(progressRef, (snapshot) => {
+      const progress = snapshot.val();
+      if (progress !== null) {
+        resolve(progress);
+      } else {
+        reject(new Error('Progress not found'));
+      }
     });
-    return () => unsubscribe();
-  }, []);
-  
-  return user;
+  });
+};
+
+export const saveRandomEvent = (userId: string, event: string) => {
+  const eventRef = ref(database, `users/${userId}/events`);
+  push(eventRef, event);
+};
+
+export const getRandomEvents = (userId: string): Promise<string[]> => {
+  return new Promise((resolve, reject) => {
+    const eventRef = ref(database, `users/${userId}/events`);
+    onValue(eventRef, (snapshot) => {
+      const events = snapshot.val() || [];
+      resolve(events);
+    });
+  });
 };
