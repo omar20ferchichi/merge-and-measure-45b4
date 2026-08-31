@@ -1,50 +1,48 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { MergeState, MergeSuccessState } from '../../types';
+
+interface MergeState {
+  mergeCount: number;
+  isMerging: boolean;
+  mergeSuccess: boolean;
+  mergeFailure: boolean;
+}
 
 const initialState: MergeState = {
   mergeCount: 0,
-  mergeSuccessStates: [],
-  currentMergeSuccessState: null,
-  difficultyLevel: 1,
-  progress: 0,
-  measurementGoal: 100,
+  isMerging: false,
+  mergeSuccess: false,
+  mergeFailure: false,
 };
 
-const mergeSlice = createSlice({
+export const mergeSlice = createSlice({
   name: 'merge',
   initialState,
   reducers: {
-    incrementMergeCount(state) {
-      state.mergeCount += 1;
-      state.progress = Math.min(100, (state.mergeCount / state.measurementGoal) * 100);
+    startMerge: (state) => {
+      state.isMerging = true;
+      state.mergeSuccess = false;
+      state.mergeFailure = false;
     },
-
-    setMergeSuccessState(state, action: PayloadAction<MergeSuccessState>) {
-      state.mergeSuccessStates.push(action.payload);
-      state.currentMergeSuccessState = action.payload;
-
-      // Update difficulty based on merge count
-      if (state.mergeCount % 10 === 0) {
-        state.difficultyLevel += 1;
-        state.measurementGoal = Math.floor(state.measurementGoal * 1.2);
-      }
+    successMerge: (state, action: PayloadAction<number>) => {
+      state.mergeCount = action.payload;
+      state.isMerging = false;
+      state.mergeSuccess = true;
+      state.mergeFailure = false;
     },
-
-    resetMergeState(state) {
+    failureMerge: (state, action: PayloadAction<number>) => {
+      state.mergeCount = action.payload;
+      state.isMerging = false;
+      state.mergeSuccess = false;
+      state.mergeFailure = true;
+    },
+    resetMerge: (state) => {
       state.mergeCount = 0;
-      state.mergeSuccessStates = [];
-      state.currentMergeSuccessState = null;
-      state.difficultyLevel = 1;
-      state.progress = 0;
-      state.measurementGoal = 100;
-    },
-
-    updateProgress(state, action: PayloadAction<number>) {
-      state.progress = Math.min(100, action.payload);
+      state.isMerging = false;
+      state.mergeSuccess = false;
+      state.mergeFailure = false;
     },
   },
 });
 
-export const { incrementMergeCount, setMergeSuccessState, resetMergeState, updateProgress } = mergeSlice.actions;
-
+export const { startMerge, successMerge, failureMerge, resetMerge } = mergeSlice.actions;
 export default mergeSlice.reducer;
