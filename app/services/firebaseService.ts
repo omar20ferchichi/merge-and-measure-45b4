@@ -1,15 +1,15 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc, collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { useEffect, useState } from 'react';
 
 // Firebase configuration
 const firebaseConfig = {
   apiKey: 'YOUR_API_KEY',
-  authDomain: 'YOUR_AUTH_DOMAIN',
+  authDomain: 'YOUR_PROJECT_ID.firebaseapp.com',
   projectId: 'YOUR_PROJECT_ID',
-  storageBucket: 'YOUR_STORAGE_BUCKET',
-  messagingSenderId: 'YOUR_MESSAGING_SENDER_ID',
+  storageBucket: 'YOUR_PROJECT_ID.appspot.com',
+  messagingSenderId: 'YOUR_SENDER_ID',
   appId: 'YOUR_APP_ID'
 };
 
@@ -18,70 +18,116 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// Firebase service for progression sync
-export const useFirebaseSync = () => {
-  const [user, setUser] = useState(null);
-  const [progress, setProgress] = useState({
-    mergeCount: 0,
-    difficulty: 1,
-    events: []
-  });
+// Firebase service for merge count sync
+export class FirebaseService {
+  private userUid: string | null = null;
 
-  useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setUser(user);
+  constructor() {
+    this.init();
+  }
+
+  private async init() {
+    onAuthStateChanged(auth, (user) => {
       if (user) {
-        const docRef = doc(db, 'users', user.uid);
-        getDoc(docRef).then((docSnap) => {
-          if (docSnap.exists()) {
-            setProgress(docSnap.data());
-          } else {
-            // Initialize default progress
-            setProgress({
-              mergeCount: 0,
-              difficulty: 1,
-              events: []
-            });
-            // Save initial progress
-            setDoc(docRef, progress);
-          }
-        });
+        this.userUid = user.uid;
+        this.syncMergeCount();
+      } else {
+        this.userUid = null;
       }
     });
-    return () => unsubscribe();
-  }, []);
+  }
 
-  // Save progress to Firebase
-  const saveProgress = async (newProgress: { mergeCount: number; difficulty: number; events: any[] }) => {
-    if (user) {
-      const docRef = doc(db, 'users', user.uid);
-      try {
-        await updateDoc(docRef, newProgress);
-        setProgress(new
-          { mergeCount: newProgress.mergeCount, difficulty: newProgress.difficulty, events: newProgress.events });
-      } catch (error) {
-        console.error('Error updating document: ', error);
-      }
+  private async syncMergeCount() {
+    if (!this.userUid) return;
+
+    const mergeCountRef = doc(db, 'users', this.userUid);
+    const mergeCountSnap = await getDoc(mergeCountRef);
+
+    if (mergeCountSnap.exists()) {
+      // Load merge count from Firebase
+      const mergeCount = mergeCountSnap.data().mergeCount || 0;
+      // Update local state (you can store this in context or state)
+      console.log('Merge count loaded from Firebase:', mergeCount);
+    } else {
+      // Initialize merge count if not exists
+      await setDoc(mergeCountRef, { mergeCount: 0 });
+      console.log('Merge count initialized in Firebase');
     }
-  };
+  }
 
-  // Add event to progress
-  const addEvent = async (event: any) => {
-    if (user) {
-      const docRef = doc(db, 'users', user.uid);
-      try {
-        await updateDoc(docRef, {
-          events: [...progress.events, event]
-        });
-        setProgress(prev => ({
-          ...prev,
-          events: [...prev.events, event]
-        }));
-      } catch (error) {
-        console.error('Error adding event: ', error);
-      }
+  public async incrementMergeCount() {
+    if (!this.userUid) return;
+
+    const mergeCountRef = doc(db, 'users', this.userUid);
+    const mergeCountSnap = await getDoc(mergeCountRef);
+
+    if (mergeCountSnap.exists()) {
+      const mergeCount = mergeCountSnap.data().mergeCount || 0;
+      await updateDoc(mergeCountRef, { mergeCount: mergeCount + 1 });
+      console.log('Merge count updated in Firebase');
+    } else {
+      await setDoc(mergeCountRef, { mergeCount: 1 });
+      console.log('Merge count initialized and updated in Firebase');
     }
-  };
+  }
 
-  return { user, progress, saveProgress, addEvent };
-};
+  public async resetMergeCount() {
+    if (!this.userUid) return;
+
+    const mergeCountRef = doc(db, 'users', this.userUid);
+    await deleteDoc(mergeCountRef);
+    console.log('Merge count reset in Firebase');
+  }
+
+  public async getMergeCount(): Promise<number> {
+    if (!this.userUid) return 0;
+
+    const mergeCountRef = doc(db, 'users', this.userUid);
+    const mergeCountSnap = await getDoc(mergeCountRef);
+
+    if (mergeCountSnap.exists()) {
+      return mergeCountSnap.data().mergeCount || 0;
+    } else {
+      return 0;
+    }
+  }
+
+  // Example: Add a new user to Firebase
+  public async addUser(username: string) {
+    const usersRef = collection(db, 'users');
+    const newUserRef = doc(usersRef);
+    await setDoc(newUserRef, { username, mergeCount: 0 });
+    console.log('User added to Firebase');
+  }
+
+  // Example: Get all users from Firebase
+  public async getAllUsers(): Promise<{ id: string; username: string; mergeCount: number }[]> {
+    const usersRef = collection(db, 'users');
+    const usersQuery = query(usersRef);
+    const querySnapshot = await getDocs(usersQuery);
+
+    const users: { id: string; username: string; mergeCount: number }[] = [];
+    querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      users.push({ id: doc.id, username: data.username || 'Unknown', mergeCount: data.mergeCount || 0 });
+    });
+    return users;
+  }
+
+  // Example: Update a user's merge count
+  public async updateUserMergeCount(userId: string, mergeCount: number) {
+    const userRef = doc(db, 'users', userId);
+    await updateDoc(userRef, { mergeCount });
+    console.log('User merge count updated in Firebase');
+  }
+
+  // Example: Delete a user
+  public async deleteUser(userId: string) {
+    const userRef = doc(db, 'users', userId);
+    await deleteDoc(userRef);
+    console.log('User deleted from Firebase');
+  }
+}
+
+// Firebase service instance
+export const firebaseService = new FirebaseService();
