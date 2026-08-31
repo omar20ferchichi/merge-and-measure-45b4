@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
-import { getAnalytics, logEvent } from 'firebase/analytics';
-import { getFirestore, doc, setDoc, getDoc, deleteDoc } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { getAuth, onAuthStateChanged } from 'firebase/auth';
+import { useEffect, useState } from 'react';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -9,71 +10,88 @@ const firebaseConfig = {
   projectId: 'YOUR_PROJECT_ID',
   storageBucket: 'YOUR_PROJECT_ID.appspot.com',
   messagingSenderId: 'YOUR_SENDER_ID',
-  appId: 'YOUR_APP_ID',
-  measurementId: 'YOUR_MEASUREMENT_ID'
+  appId: 'YOUR_APP_ID'
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
 const db = getFirestore(app);
+const auth = getAuth(app);
 
-// Firebase service for tracking random events
-export class FirebaseService {
-  static async logRandomEventTriggered() {
-    logEvent(analytics, 'random_event_triggered');
-  }
+// Firebase service for merge count tracking
+export const useFirebaseMergeCount = () => {
+  const [user, setUser] = useState(null);
+  const [mergeCount, setMergeCount] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  static async logMergeSuccess() {
-    logEvent(analytics, 'merge_success');
-  }
-
-  static async logMergeFailed() {
-    log,Event(analytics, 'merge_failed');
-  }
-
-  static async logAdRewarded() {
-    logEvent(analytics, 'ad_rewarded');
-  }
-
-  static async logAdInterstitialShown() {
-    logEvent(analytics, 'ad_interstitial_shown');
-  }
-
-  static async logAdsRemovedPurchased() {
-    logEvent(analytics, 'ads_removed_purchased');
-  }
-
-  static async savePlayerProgress(progress: number) {
-    try {
-      const playerRef = doc(db, 'players', 'current');
-      await setDoc(playerRef, { progress });
-    } catch (error) {
-      console.error('Error saving player progress:', error);
-    }
-  }
-
-  static async getPlayerProgress(): Promise<number | null> {
-    try {
-      const playerRef = doc(db, 'players', 'current');
-      const docSnap = await getDoc(playerRef);
-      if (docSnap.exists()) {
-        return docSnap.data().progress || 0;
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setUser(user);
+      if (user) {
+        const docRef = doc(db, 'users', user.uid);
+        getDoc(docRef)
+          .then((docSnap) => {
+            if (docSnap.exists()) {
+              setMergeCount(docSnap.data().mergeCount || 0);
+            } else {
+              // User document does not exist, create it with initial merge count
+              setDoc(docRef, { mergeCount: 0 });
+            }
+            setLoading(false);
+          })
+          .catch((err) => {
+            setError('Failed to fetch merge count: ' + err.message);
+            setLoading(false);
+          });
       } else {
-        return null;
+        // User is signed out
+        setMerge, setLoading(false);
       }
-    } catch (error) {
-      console.error('Error fetching player progress:', error);
-      return null;
-    }
-  }
+    });
+    return () => unsubscribe();
+  }, []);
 
-  static async clearPlayerProgress() {
-    try {
-      const playerRef = doc(db, 'players', 'current');
-      await deleteDoc(playerRef);
-    } catch (error) {
-      console.error('Error clearing player progress:', error);
+  const incrementMergeCount = async () => {
+    if (!user) {
+      setError('User not authenticated');
+      return;
     }
-  }
-}
+    try {
+      const docRef = doc(db, 'users', user.uid);
+      await updateDoc(docRef, {
+        mergeCount: mergeCount + 1
+      });
+      setMergeCount(mergeCount + 1);
+      // Track merge success event
+      // analytics.logEvent('merge_success');
+    } catch (err) {
+      setError('Failed to update merge count: ' + err.message);
+    }
+  };
+
+  const resetMergeCount = async () => {
+    if (!user) {
+      setError('User not authenticated');
+      return;
+    }
+    try {
+      const docRef = doc(db, 'users', user.uid);
+      await deleteDoc(docRef);
+      setMergeCount(0);
+      // Track merge reset event
+      // analytics.logEvent('merge_reset');
+    } catch (err) {
+      setError('Failed to reset merge count: ' + err.message);
+    }
+  };
+
+  return {
+    user,
+    mergeCount,
+    loading,
+    error,
+    incrementMergeCount,
+    resetMergeCount
+  };
+};
