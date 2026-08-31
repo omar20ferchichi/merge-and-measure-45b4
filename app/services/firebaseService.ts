@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, doc, setDoc, getDocs, query, where, deleteDoc } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { useEffect, useState } from 'react';
 
@@ -18,77 +18,52 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-export interface PlayerProgress {
-  mergeCount: number;
-  currentMeasurement: number;
-  difficultyLevel: number;
-  lastEventTimestamp: number;
-  eventsHistory: string[];
+export interface DifficultyState {
+  currentDifficulty: number;
+  mergeThreshold: number;
+  eventFrequency: number;
 }
 
 export const useFirebaseSync = () => {
   const [user, setUser] = useState<any>(null);
-  const [progress, setProgress] = useState<PlayerProgress | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [difficultyState, setDifficultyState] = useState<DifficultyState | null>(null);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       setUser(user);
       if (user) {
-        const userRef = doc(db, 'players', user.uid);
-        getDocs(query(collection(db, 'players'), where('uid', '==', user.uid))).then((querySnapshot) => {
-          if (!querySnapshot.empty) {
-            const playerData = querySnapshot.docs[0].data() as PlayerProgress;
-            setProgress(playerData);
+        const docRef = doc(db, 'users', user.uid);
+        getDoc(docRef).then((docSnap) => {
+          if (docSnap.exists()) {
+            const data = docSnap.data() as DifficultyState;
+            setDifficultyState(data);
           } else {
-            // Create new player record if not exists
-            setDoc(userRef, {
-              mergeCount: 0,
-              currentMeasurement: 0,
-              difficultyLevel: 1,
-              lastEventTimestamp: Date.now(),
-              eventsHistory: []
-            });
-            setProgress({
-              mergeCount: 0,
-              currentMeasurement: 0,
-              difficultyLevel: 1,
-              lastEventTimestamp: Date.now(),
-              eventsHistory: []
-            });
+            // Initialize default difficulty state
+            const defaultState: DifficultyState = {
+              currentDifficulty: 1,
+              mergeThreshold: 10,
+              eventFrequency: 5
+            };
+            setDoc(docRef, defaultState);
+            setDifficultyState(defaultState);
           }
-          setLoading(false);
         });
-      } else {
-        setLoading(false);
       }
     });
-
     return () => unsubscribe();
   }, []);
 
-  const updateProgress = (newProgress: Partial<PlayerProgress>) => {
+  const updateDifficultyState = async (newState: DifficultyState) => {
     if (user) {
-      const userRef = doc(db, 'players', user.uid);
-      setDoc(userRef, {
-        ...progress,
-        ...newProgress,
-        lastEventTimestamp: Date.now()
-      });
+      const docRef = doc(db, 'users', user.uid);
+      try {
+        await updateDoc(docRef, newState);
+        setDifficultyState(newState);
+      } catch (error) {
+        console.error('Error updating difficulty state:', error);
+      }
     }
   };
 
-  const triggerRandomEvent = async () => {
-    if (user) {
-      const userRef = doc(db, 'players', user.uid);
-      const eventsHistory = [...(progress?.eventsHistory || []), `Random Event Triggered at ${new Date().toISOString()}`];
-      await setDoc(userRef, {
-        ...progress,
-        eventsHistory,
-        lastEventTimestamp: Date.now()
-      });
-    }
-  };
-
-  return { user, progress, loading, updateProgress, triggerRandomEvent };
+  return { user, difficultyState, updateDifficultyState };
 };
