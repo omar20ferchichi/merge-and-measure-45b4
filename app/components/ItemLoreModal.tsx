@@ -39,7 +39,7 @@ const ItemLoreModal: React.FC<ItemLoreModalProps> = ({ visible, item, onClose })
           {showBackstory && (
             <Text style={styles.backstoryText}>{item.backstory}</Text>
           )}
-        </</View>
+        </View>
       </View>
     </Modal>
   );
