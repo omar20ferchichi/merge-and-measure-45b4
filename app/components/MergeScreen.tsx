@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { mergeItems, getMergeItems, resetMergeItems } from '../services/mergeService';
+import { mergeItems, getMergeItems, resetMergeItems, MergeableItem } from '../services/mergeService';
 import MergeItem from '../components/MergeItem';
 
 const { width, height } = Dimensions.get('window');
 
 const MergeScreen: React.FC = () => {
-  const [mergeItems, setMergeItems] = useState<any[]>([]);
+  const [boardItems, setBoardItems] = useState<MergeableItem[]>([]);
   const [isMerging, setIsMerging] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -16,7 +16,7 @@ const MergeScreen: React.FC = () => {
     const fetchMergeItems = async () => {
       try {
         const items = await getMergeItems();
-        setMergeItems(items);
+        setBoardItems(items);
       } catch (error) {
         console.error('Failed to fetch merge items:', error);
       }
@@ -29,7 +29,7 @@ const MergeScreen: React.FC = () => {
     setIsMerging(true);
     try {
       await mergeItems(itemId);
-      setMergeItems(mergeItems.filter(item => item.id !== itemId));
+      setBoardItems(prev => prev.filter(item => item.id !== itemId));
       setProgress(prev => prev + 10);
 
       if (progress + 10 >= 100) {
@@ -42,9 +42,10 @@ const MergeScreen: React.FC = () => {
     }
   };
 
-  const handleReset = () => {
-    resetMergeItems();
-    setMergeItems([]);
+  const handleReset = async () => {
+    await resetMergeItems();
+    const items = await getMergeItems();
+    setBoardItems(items);
     setProgress(0);
     setIsCompleted(false);
   };
@@ -55,12 +56,18 @@ const MergeScreen: React.FC = () => {
       <Text style={styles.progressText}>Progress: {progress}%</Text>
       <View style={styles.mergeContainer}>
         <FlatList
-          data={mergeItems}
+          data={boardItems}
           keyExtractor={item => item.id}
           renderItem={({ item }) => (
             <MergeItem
-              item={item}
+              id={item.id}
+              value={item.value}
               onMerge={handleMerge}
+              onDragStart={() => {}}
+              onDragEnd={() => {}}
+              isMerging={isMerging}
+              mergeTarget={item.value * 2}
+              mergeProgress={progress}
             />
           )}
           numColumns={2}
