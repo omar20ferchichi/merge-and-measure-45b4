@@ -1,7 +1,6 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
-import { getAuth, onAuthStateChanged } from 'firebase/auth';
-import { useEffect, useState } from 'react';
+import { getAnalytics, logEvent } from 'firebase/analytics';
+import { getFirestore, collection, doc, setDoc, getDoc, updateDoc, deleteDoc, onSnapshot } from 'firebase/firestore';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -10,68 +9,51 @@ const firebaseConfig = {
   projectId: 'YOUR_PROJECT_ID',
   storageBucket: 'YOUR_PROJECT_ID.appspot.com',
   messagingSenderId: 'YOUR_SENDER_ID',
-  appId: 'YOUR_APP_ID'
+  appId: 'YOUR_APP_ID',
+  measurementId: 'YOUR_MEASUREMENT_ID'
 };
 
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
+const analytics = getAnalytics(app);
 const db = getFirestore(app);
-const auth = getAuth(app);
 
-export const useFirebaseMergeCount = () => {
-  const [mergeCount, setMergeCount] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchMergeCount = async () => {
-      try {
-        // Get current user
-        const user = auth.currentUser;
-        if (!user) {
-          throw new Error('No authenticated user');
-        }
-
-        // Fetch merge count from Firestore
-        const docRef = doc(db, 'users', user.uid);
-        const docSnap = await getDoc(docRef);
-
-        if (docSnap.exists()) {
-          const data = docSnap.data();
-          setMergeCount(data.mergeCount || 0);
-        } else {
-          // User document does not exist, initialize with 0
-          await setDoc(docRef, { mergeCount: 0 });
-          setMergeCount(0);
-        }
-        setLoading(false);
-      } catch (err) {
-        setError('Failed to load merge count');
-        setLoading(false);
-      }
-    };
-
-    fetchMergeCount();
-  }, []);
-
-  const incrementMergeCount = async () => {
-    try {
-      const user = auth.currentUser;
-      if (!user) {
-        throw new Error('No authenticated user');
-      }
-
-      const docRef = doc(db, 'users', user.uid);
-      await updateDoc(docRef, {
-        mergeCount: mergeCount + 1
-      });
-      setMergeCount(prev => prev + 1);
-      // Track analytics event for merge success
-      // analytics.logEvent('merge_success');
-    } catch (err) {
-      setError('Failed to update merge count');
-    }
-  };
-
-  return { mergeCount, loading, error, incrementMergeCount };
+// Track analytics events
+export const trackEvent = (eventType: string, eventData: Record<string, any>) => {
+  logEvent(analytics, eventType, eventData);
 };
+
+// Save player progress to Firebase
+export const saveProgress = async (playerId: string, progress: number) => {
+  try {
+    const docRef = doc(db, 'players', playerId);
+    await setDoc(docRef, { progress: progress });
+    trackEvent('merge_success', { playerId, progress });
+  } catch (error) {
+    console.error('Error saving progress:', error);
+    trackEvent('merge_failed', { playerId, error: error.message });
+  }
+};
+
+// Load player progress from Firebase
+export const loadProgress = async (playerId: string): Promise<number | null> => {
+  try {
+    const docRef = doc(db, 'players', playerId);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return docSnap.data().progress || 0;
+    } else {
+      return null;
+    }
+  } catch (error) {
+    console.error('Error loading progress:', error);
+    trackEvent('merge_failed', { playerId, error: error.message });
+    return null;
+  }
+};
+
+// Update player progress
+export const updateProgress = async (playerId: string, progress: number) => {
+  try {
+    const docRef = doc(db, 'players', playerId);
+    await updateDoc(doc
