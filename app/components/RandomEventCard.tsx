@@ -1,106 +1,75 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useDispatch } from 'react-redux';
+import { setRandomEvents } from '../reducers/firebaseReducer';
+import { FirebaseService } from '../services/firebaseService';
 
 interface RandomEventCardProps {
-  event: {
-    id: string;
-    title: string;
-    description: string;
-    effect: string;
-    duration: number;
-    type: 'bonus' | 'challenge' | 'reset';
-  };
-  onEventResolved: () => void;
+  event: { id: string; timestamp: string; effect?: string };
 }
 
-const RandomEventCard: React.FC<RandomEventCardProps> = ({ event, onEventResolved }) => {
+const RandomEventCard: React.FC<RandomEventCardProps> = ({ event }) => {
+  const dispatch = useDispatch();
+
+  const handleEventDetail = async () => {
+    try {
+      // Simulate fetching event details
+      const updatedEvents = await FirebaseService.getRandomEvents(event.id);
+      dispatch(setRandomEvents(updatedEvents));
+    } catch (error) {
+      console.error('Error fetching event details:', error);
+    }
+  };
+
   return (
-    <View style={styles.cardContainer}>
-      <View style={styles.cardHeader}>
-        <Text style={styles.cardTitle}>{event.title}</Text>
-        <Text style={styles.cardTypeLabel}>{event.type}</Text>
-      </View>
-      <View style={styles.cardBody}>
-        <Text style={styles.cardDescription}>{event.description}</Text>
-        <Text style={styles.cardEffectText}>{event.effect}</Text>
-      </View>
-      <View style={styles.cardFooter}>
-        <TouchableOpacity
-          style={styles.resolveButton}
-          onPress={onEventResolved}
-        >
-          <Text style={styles.resolveButtonText}>Resolve Event</Text>
-          <Ionicons name="checkmark-circle" size={20} color="white" />
-        </TouchableOpacity>
-      </View>
+    <View style={styles.card}>
+      <Text style={styles.title}>Event ID: {event.id}</Text>
+      <Text style={styles.timestamp}>Timestamp: {event.timestamp}</Text>
+      {event.effect && <Text style={styles.effect}>Effect: {event.effect}</Text>}
+      <TouchableOpacity onPress={handleEventDetail} style={styles.detailButton}>
+        <Text style={styles.detailButtonText}>View Details</Text>
+      </TouchableOpacity>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  cardContainer: {
-    backgroundColor: '#ffffff',
-    borderRadius: 12,
+  card: {
+    backgroundColor: '#f0f0f0',
     padding: 16,
-    marginVertical: 12,
+    marginVertical: 8,
+    borderRadius: 8,
+    elevation: 2,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 5,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 2 }
   },
-  cardHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  cardTitle: {
-    fontSize: 18,
+  title: {
+    fontSize: 16,
     fontWeight: 'bold',
-    color: '#333333',
+    marginBottom: 8
   },
-  cardTypeLabel: {
-    backgroundColor: '#f0f0f0',
-    paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 6,
-    fontSize: 12,
-    color: '#666666',
-  },
-  cardBody: {
-    marginBottom: 16,
-  },
-  cardDescription: {
+  timestamp: {
     fontSize: 14,
-    color: '#555555',
-    marginBottom: 8,
+    color: '#666',
+    marginBottom: 4
   },
-  cardEffectText: {
+  effect: {
     fontSize: 14,
-    color: '#333333',
-    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 8
   },
-  cardFooter: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
+  detailButton: {
+    backgroundColor: '#007BFF',
+    paddingVertical: 8,
+    borderRadius: 4
   },
-  resolveButton: {
-    backgroundColor: '#4CAF50',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 6,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  resolveButtonText: {
-    color: 'white',
+  detailButtonText: {
+    color: '#fff',
     fontSize: 14,
-    fontWeight: 'bold',
-    marginRight: 8,
-  },
+    textAlign: 'center'
+  }
 });
 
 export default RandomEventCard;
