@@ -13,10 +13,10 @@ const AdManager = () => {
 
   const loadRewardedAd = async () => {
     if (Platform.OS === 'android') {
-      const ad = await AdMob RewardedAd.createWithAdId('ca-app-pub-3940256099932292/5224354917');
+      const ad = await AdMobRewardedAd.createWithAdId('ca-app-pub-3940256099932292/5224354917');
       setRewardedAd(ad);
     } else {
-      const ad = await AdMob RewardedAd.createWithAdId('ca-app-pub-3940256099932292/1454183619');
+      const ad = await AdMobRewardedAd.createWithAdId('ca-app-pub-3940256099932292/1454183619');
       setRewardedAd(ad);
     }
   };
