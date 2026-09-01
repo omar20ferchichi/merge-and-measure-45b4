@@ -43,7 +43,7 @@ const ProgressIndicator: React.FC<ProgressIndicatorProps> = ({
           {isMerging ? 'Merging...' : 'Merge Item'}
         </Text>
         {isMerging && <ActivityIndicator size="small" color="#fff" style={styles.loadingIndicator} />}
-      </
+      </TouchableOpacity>
     </View>
   );
 };
