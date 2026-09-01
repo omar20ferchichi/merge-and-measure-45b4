@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, doc, setDoc, getDocs, query, where, deleteDoc, updateDoc } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc, updateDoc } from 'firebase/firestore';
 import { getAuth, onAuthStateChanged } from 'firebase/auth';
 import { useEffect, useState } from 'react';
 
@@ -18,53 +18,111 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 
-// Firebase service for difficulty scaling tracking
+// Firebase service class
 export class FirebaseService {
   private user: any = null;
-  private userId: string = '';
 
   constructor() {
     this.init();
   }
 
   private async init() {
-    // Listen for auth state changes
-    onAuthStateChanged(auth, async (user) => {
+    onAuthStateChanged(auth, (user) => {
       this.user = user;
-      if (user) {
-        this.userId = user.uid;
-        // Sync difficulty data on user login
-        await this.syncDifficultyData();
+      if (this.user) {
+        // User is signed in, see getAuth()
+        console.log('User signed in:', this.user);
+      } else {
+        // User is signed out
+        console.log('User signed out');
       }
     });
   }
 
-  // Sync difficulty data from Firebase
-  private async syncDifficultyData() {
-    if (!this.userId) return;
-    const difficultyRef = doc(db, 'difficulty', this.userId);
-    const docSnap = await getDocs(query(collection(db, 'difficulty'), where('userId', '==', this.userId)));
-    if (!docSnap.empty) {
-      const difficultyData = docSnap.docs[0].data();
-      // Update local state with difficulty data
-      // You can add logic here to update game state based on difficulty data
+  // Save player progress to Firebase
+  async saveProgress(progress: { level: number; score: number; merges: number }) {
+    if (!this.user) {
+      console.error('User not authenticated');
+      return;
+    }
+
+    const userDocRef = doc(db, 'users', this.user.uid);
+    try {
+      await setDoc(userDocRef, {
+        level: progress.level,
+        score: progress.score,
+        merges: progress.merges,
+        timestamp: new Date()
+      }, { mergeFields: true });
+      console.log('Progress saved successfully');
+    } catch (error) {
+      console.error('Error saving progress:', error);
     }
   }
 
-  // Save difficulty scaling state to Firebase
-  public async saveDifficultyState(difficultyLevel: number, mergeCount: number) {
-    if (!this.userId) return;
-    const difficultyRef = doc(db, 'difficulty', this.userId);
-    await setDoc(difficultyRef, {
-      userId: this.userId,
-      difficultyLevel: difficultyLevel,
-      mergeCount: mergeCount,
-      timestamp: new Date().toISOString()
-    });
+  // Load player progress from Firebase
+  async loadProgress(): Promise<{ level: number; score: number; merges: number } | null> {
+    if (!this.user) {
+      console.error('User not authenticated');
+      return null;
+    }
+
+    const userDocRef = doc(db, 'users', this, user.uid);
+    try {
+      const docSnap = await getDoc(userDocRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        return {
+          level: data.level || 0,
+          score: data.score || 0,
+          merges: data.merges || 0
+        };
+      } else {
+        console.log('No such document');
+        return null;
+      }
+    } catch (error) {
+      console.error('Error loading progress:', error);
+      return null;
+    }
   }
 
-  // Update difficulty level based on merge count
-  public async updateDifficultyLevel(difficultyLevel: number) {
-    if (!this.userId) return;
-    const difficultyRef = doc(db, 'difficulty', this.userId);
-    await updateDoc(diff
+  // Update player progress in Firebase
+  async updateProgress(progress: { level: number; score: number; merges: number }) {
+    if (!this.user) {
+      console.error('User not authenticated');
+      return;
+    }
+
+    const userDocRef = doc(db, 'users', this.user.uid);
+    try {
+      await updateDoc(userDocRef, {
+        level: progress.level,
+        score: progress.score,
+        merges: progress.merges
+      });
+      console.log('Progress updated successfully');
+    } catch (error) {
+      console.error('Error updating progress:', error);
+    }
+  }
+
+  // Get current user
+  getUser(): any {
+    return this.user;
+  }
+
+  // Check if user is authenticated
+  isAuthenticated(): boolean {
+    return !!this.user;
+  }
+
+  // Sign out user
+  signOut() {
+    auth.signOut();
+    console.log('User signed out');
+  }
+}
+
+// Firebase service instance
+export const firebaseService = new FirebaseService();
