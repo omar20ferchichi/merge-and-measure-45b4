@@ -29,12 +29,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // General -> Your apps -> SDK setup and configuration) to enable cloud save.
 // Until you do, the app runs fine — progress just stays local to the device.
 const firebaseConfig = {
-  apiKey: 'YOUR_API_KEY',
-  authDomain: 'YOUR_PROJECT_ID.firebaseapp.com',
-  projectId: 'YOUR_PROJECT_ID',
-  storageBucket: 'YOUR_PROJECT_ID.appspot.com',
-  messagingSenderId: 'YOUR_SENDER_ID',
-  appId: 'YOUR_APP_ID',
+  apiKey: 'AIzaSyAQSTkOE4MpMeM4A3AYsa7MHmujLc_qVtI',
+  authDomain: 'merge-432c3.firebaseapp.com',
+  projectId: 'merge-432c3',
+  storageBucket: 'merge-432c3.firebasestorage.app',
+  messagingSenderId: '971322423438',
+  appId: '1:971322423438:web:5bd53ce8a5922edfab31df',
 };
 
 const isConfigured = firebaseConfig.apiKey !== 'YOUR_API_KEY' && !!firebaseConfig.apiKey;
