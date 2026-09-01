@@ -1,4 +1,4 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import React, { createContext, useState, useContext } from 'react';
 
 interface MergeState {
   selectedItems: string[];
@@ -17,12 +17,6 @@ const MergeContext = createContext<MergeContextType | undefined>(undefined);
 export const MergeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [mergedItems, setMergedItems] = useState<Record<string, number>>({});
-
-  useEffect(() => {
-    // Initialize merged items from local storage or default values
-    const initialMergedItems = JSON.parse(localStorage.getItem('mergedItems') || '{}');
-    setMergedItems(initialMergedItems);
-  }, []);
 
   return (
     <MergeContext.Provider value={{ selectedItems, mergedItems, setSelectedItems, setMergedItems }}>
