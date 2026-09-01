@@ -1,59 +1,37 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { useAuthState } from '../services/firebaseService';
+import { useFirebase } from '../services/firebaseService';
 
-interface MergeState {
+export interface MergeState {
   mergeCount: number;
-  lastMergeTimestamp: string;
-  isMerging: boolean;
-  mergeSuccess: boolean;
-  mergeFailure: boolean;
+  isLoading: boolean;
+  error: string | null;
 }
 
 const initialState: MergeState = {
   mergeCount: 0,
-  lastMergeTimestamp: '',
-  isMerging: false,
-  mergeSuccess: false,
-  mergeFailure: false
+  isLoading: false,
+  error: null
 };
 
 export const mergeSlice = createSlice({
   name: 'merge',
   initialState,
   reducers: {
-    startMerge: (state) => {
-      state.isMerging = true;
+    incrementMergeCount: (state) => {
+      state.mergeCount += 1;
     },
-    completeMerge: (state) => {
-      state.isMerging = false;
-      state.mergeSuccess = true;
-      state.mergeFailure = false;
+    setMergeCount: (state, action: PayloadAction<number>) => {
+      state.mergeCount = action.payload;
     },
-    failMerge: (state) => {
-      state.isMerging = false;
-      state.mergeSuccess = false;
-      state.mergeFailure = true;
+    setLoading: (state, action: PayloadAction<boolean>) => {
+      state.isLoading = action.payload;
     },
-    resetMerge: (state) => {
-      state.isMerging = false;
-      state.mergeSuccess = false;
-      state.mergeFailure = false;
+    setError: (state, action: PayloadAction<string | null>) => {
+      state.error = action.payload;
     }
-  },
-  extraReducers: (builder) => {
-    builder
-      .addCase(trackMergeSuccess.pending, (state, action) => {
-        state.mergeCount += 1;
-        state.lastMergeTimestamp = new Date().toISOString();
-        state.mergeSuccess = true;
-      })
-      .addCase(trackMergeFailure.pending, (state, action) => {
-        state.mergeCount += 1;
-        state.lastMergeTimestamp = new Date().toISOString();
-        state.mergeFailure = true;
-      });
   }
 });
 
-export const { startMerge, completeMerge, failMerge, resetMerge } = mergeSlice.actions;
+export const { incrementMergeCount, setMergeCount, setLoading, setError } = mergeSlice.actions;
+
 export default mergeSlice.reducer;
