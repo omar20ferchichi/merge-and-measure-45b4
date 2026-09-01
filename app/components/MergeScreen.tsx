@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { mergeItems, getMergeItems, resetMergeItems, MergeableItem } from '../services/mergeService';
+import { saveProgress, loadProgress, isCloudSaveEnabled } from '../services/firebase';
 import MergeItem from '../components/MergeItem';
 
 const { width, height } = Dimensions.get('window');
@@ -20,6 +21,12 @@ const MergeScreen: React.FC = () => {
       } catch (error) {
         console.error('Failed to fetch merge items:', error);
       }
+
+      const savedProgress = await loadProgress();
+      if (savedProgress !== null) {
+        setProgress(savedProgress);
+        setIsCompleted(savedProgress >= 100);
+      }
     };
 
     fetchMergeItems();
@@ -30,11 +37,12 @@ const MergeScreen: React.FC = () => {
     try {
       await mergeItems(itemId);
       setBoardItems(prev => prev.filter(item => item.id !== itemId));
-      setProgress(prev => prev + 10);
-
-      if (progress + 10 >= 100) {
-        setIsCompleted(true);
-      }
+      setProgress(prev => {
+        const next = prev + 10;
+        saveProgress(next);
+        if (next >= 100) setIsCompleted(true);
+        return next;
+      });
     } catch (error) {
       console.error('Merge failed:', error);
     } finally {
@@ -48,12 +56,16 @@ const MergeScreen: React.FC = () => {
     setBoardItems(items);
     setProgress(0);
     setIsCompleted(false);
+    saveProgress(0);
   };
 
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Merge & Measure</Text>
       <Text style={styles.progressText}>Progress: {progress}%</Text>
+      <Text style={styles.cloudStatus}>
+        {isCloudSaveEnabled() ? '☁️ Cloud save on' : '📱 Local save only'}
+      </Text>
       <View style={styles.mergeContainer}>
         <FlatList
           data={boardItems}
@@ -103,6 +115,12 @@ const styles = StyleSheet.create({
   },
   progressText: {
     fontSize: 18,
+    marginBottom: 4,
+    textAlign: 'center',
+  },
+  cloudStatus: {
+    fontSize: 12,
+    color: '#888',
     marginBottom: 20,
     textAlign: 'center',
   },
