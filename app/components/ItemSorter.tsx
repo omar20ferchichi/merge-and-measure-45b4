@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
-import { MergeItem } from '../../types';
-import { useMergeContext } from '../../context/MergeContext';
+import { MergeItem } from '../types';
+import { useMergeContext } from '../context/MergeContext';
 
 const ItemSorter: React.FC = () => {
   const { mergeItems, sortItemsByStat } = useMergeContext();
