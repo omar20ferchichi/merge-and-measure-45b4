@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, FlatList, StyleSheet, Text, TouchableOpacity, Image } from 'react-native';
-import { MergeItem } from '../../types';
+import { MergeItem } from '../types';
 
 interface InventoryGridProps {
   items: MergeItem[];
