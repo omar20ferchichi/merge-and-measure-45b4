@@ -1,107 +1,63 @@
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { createAction, createReducer } from '@reduxjs/toolkit';
 import { FirebaseService } from '../services/firebaseService';
 
+// Define Firebase state
 interface FirebaseState {
-  difficultyLevel: number;
-  progress: number;
-  lastUpdated: Date;
-  user: any;
+  user: string | null;
+  randomEvents: { id: string; timestamp: string; effect?: string }[];
   loading: boolean;
   error: string | null;
 }
 
 const initialState: FirebaseState = {
-  difficultyLevel: 1,
-  progress: 0,
-  lastUpdated: new Date(),
   user: null,
+  randomEvents: [],
   loading: false,
   error: null
 };
 
-export const firebaseSlice = createSlice({
-  name: 'firebase',
-  initialState,
-  reducers: {
-    setDifficultyLevel: (state, action: PayloadAction<number>) => {
-      state.difficultyLevel = action.payload;
-    },
-    setProgress: (state, action: PayloadAction<number>) => {
-      state.progress = action.payload;
-    },
-    setLastUpdated: (state, action: PayloadAction<Date>) => {
-      state.lastUpdated = action.payload;
-    },
-    setUser: (state, action: PayloadAction<any>) => {
+// Actions
+export const setUser = createAction('firebase/setUser');
+export const setRandomEvents = createAction('firebase/setRandomEvents');
+export const setLoading = createAction('firebase/setLoading');
+export const setError = createAction('firebase/setError');
+
+// Reducer
+export const firebaseReducer = createReducer(initialState, (builder) => {
+  builder
+    .addCase(setUser, (state, action) => {
       state.user = action.payload;
-    },
-    setLoading: (state, action: PayloadAction<boolean>) => {
+      state.loading = false;
+    })
+    .addCase(setRandomEvents, (state, action) => {
+      state.randomEvents = action.payload;
+      state.loading = false;
+    })
+    .addCase(setLoading, (state, action) => {
       state.loading = action.payload;
-    },
-    setError: (state, action: PayloadAction<string | null>) => {
+    })
+    .addCase(setError, (state, action) => {
       state.error = action.payload;
-    }
-  },
-  extraReducers: (builder) => {
-    builder
-      .addCase(FirebaseService.trackDifficultyScaling.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(FirebaseService.trackDifficultyScaling.fulfilled, (state, action) => {
-        state.loading = false;
-        state.difficultyLevel = action.payload.difficultyLevel;
-        state.progress = action.payload.progress;
-        state.lastUpdated = action.payload.lastUpdated;
-      })
-      .addCase(FirebaseService.trackDifficultyScaling.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      })
-      .addCase(FirebaseService.getUserDifficultyScaling.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(FirebaseService.getUserDifficultyScaling.fulfilled, (state, action) => {
-        state.loading = false;
-        state.difficultyLevel = action.payload.difficultyLevel;
-        state.progress = action.payload.progress;
-        state.lastUpdated = action.payload.lastUpdated;
-      })
-      .addCase(FirebaseService.getUserDifficultyScaling.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      })
-      .addCase(FirebaseService.updateUserDifficultyScaling.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(FirebaseService.updateUserDifficultyScaling.fulfilled, (state, action) => {
-        state.loading = false;
-        state.difficultyLevel = action.payload.difficultyLevel;
-        state.progress = action.payload.progress;
-        state.lastUpdated = action.payload.lastUpdated;
-      })
-      .addCase(FirebaseService.updateUserDifficultyScaling.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      })
-      .addCase(FirebaseService.deleteUserDifficultyScaling.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-      })
-      .addCase(FirebaseService.deleteUserDifficultyScaling.fulfilled, (state) => {
-        state.loading = false;
-        state.difficultyLevel = 1;
-        state.progress = 0;
-        state.lastUpdated = new Date();
-      })
-      .addCase(FirebaseService.deleteUserDifficultyScaling.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload;
-      });
-  }
+      state.loading = false;
+    });
 });
 
-export const { setDifficultyLevel, setProgress, setLastUpdated, setUser, setLoading, setError } = firebaseSlice.actions;
-export default firebaseSlice.reducer;
+// Firebase service integration
+export const initFirebase = () => {
+  return async (dispatch) => {
+    dispatch(setLoading(true));
+    try {
+      await FirebaseService.init();
+      const user = FirebaseService.getCurrentUser();
+      if (user) {
+        dispatch(setUser(user.uid));
+        const events = await FirebaseService.getRandomEvents(user.uid);
+        dispatch(setRandomEvents(events));
+      }
+    } catch (error) {
+      dispatch(setError(error.message));
+    } finally {
+      dispatch(setLoading(false));
+    }
+  };
+};
