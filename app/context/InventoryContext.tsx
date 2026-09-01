@@ -16,7 +16,7 @@ interface InventoryContextType {
 
 const InventoryContext = createContext<InventoryContextType | undefined>(undefined);
 
-export const InventoryProvider: React.FC = ({ children }) => {
+export const InventoryProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
 
   const sortInventory = useCallback((isSorted: boolean) => {
