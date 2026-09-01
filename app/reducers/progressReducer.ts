@@ -1,5 +1,4 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { savePlayerProgress, getPlayerProgress, updatePlayerProgress } from '../services/firebaseService';
 
 interface ProgressState {
   progress: number;
@@ -24,18 +23,23 @@ export const progressSlice = createSlice({
     loadProgressSuccess(state, action: PayloadAction<number>) {
       state.progress = action.payload;
       state.isLoading = false;
+      state.error = null;
     },
-    loadProgressFailure(state, action: Payload, Action<string>) {
+    loadProgressFailure(state, action: PayloadAction<string>) {
       state.isLoading = false;
       state.error = action.payload;
     },
     updateProgress(state, action: PayloadAction<number>) {
       state.progress = action.payload;
-      savePlayerProgress('user123', action.payload);
     }
   }
 });
 
-export const { loadProgressStart, loadProgressSuccess, loadProgressFailure, updateProgress } = progressSlice.actions;
+export const {
+  loadProgressStart,
+  loadProgressSuccess,
+  loadProgressFailure,
+  updateProgress
+} = progressSlice.actions;
 
 export default progressSlice.reducer;
