@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, Animated, Easing } from 'react-native';
+import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 interface MergeItemProps {
@@ -75,7 +75,7 @@ const MergeItem: React.FC<MergeItemProps> = ({
     >
       <View style={styles.itemContent}>
         <Ionicons
-          name="ios-rocket"
+          name="rocket"
           size={32}
           color="blue"
         />
