@@ -1,33 +1,41 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import { FirebaseService } from '../services/firebaseService';
 
 interface DifficultyState {
-  currentDifficulty: number;
-  mergeThreshold: number;
-  eventFrequency: number;
+  difficultyLevel: number;
+  mergeCount: number;
+  isLoading: boolean;
+  error: string | null;
 }
 
 const initialState: DifficultyState = {
-  currentDifficulty: 1,
-  mergeThreshold: 10,
-  eventFrequency: 5
+  difficultyLevel: 1,
+  mergeCount: 0,
+  isLoading: false,
+  error: null
 };
 
 export const difficultySlice = createSlice({
   name: 'difficulty',
   initialState,
   reducers: {
-    increaseDifficulty: (state) => {
-      state.currentDifficulty += 1;
-      state.mergeThreshold += 5;
-      state.eventFrequency += 2;
+    setDifficultyLevel(state, action: PayloadAction<number>) {
+      state.difficultyLevel = action.payload;
     },
-    resetDifficulty: (state) => {
-      state.currentDifficulty = 1;
-      state.merge,mergeThreshold = 10;
-      state.eventFrequency = 5;
+    incrementMergeCount(state) {
+      state.mergeCount += 1;
+    },
+    setLoading(state, action: PayloadAction<boolean>) {
+      state.isLoading = action.payload;
+    },
+    setError(state, action: PayloadAction<string | null>) {
+      state.error = action.payload;
     }
+  },
+  extraReducers: (builder) => {
+    // Add reducers for async actions here
   }
 });
 
-export const { increaseDifficulty, resetDifficulty } = difficultySlice.actions;
+export const { setDifficultyLevel, incrementMergeCount, setLoading, setError } = difficultySlice.actions;
 export default difficultySlice.reducer;
