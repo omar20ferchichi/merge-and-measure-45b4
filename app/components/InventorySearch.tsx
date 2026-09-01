@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, TextInput, FlatList, Text, StyleSheet } from 'react-native';
-import { MergeItem } from '../../types';
+import { MergeItem } from '../types';
 
 interface InventorySearchProps {
   inventory: MergeItem[];
