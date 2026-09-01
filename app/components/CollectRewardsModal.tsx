@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Modal, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useMergeContext } from '../../context/MergeContext';
+import { useMergeContext } from '../context/MergeContext';
 import { useNavigation } from '@react-navigation/native';
 
 const CollectRewardsModal = () => {
