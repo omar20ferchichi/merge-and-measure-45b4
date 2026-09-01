@@ -29,7 +29,7 @@ const InventoryCategorizer: React.FC<InventoryCategorizerProps> = ({ items, onIt
     setCategories(groupedItems);
   }, [items]);
 
-  const renderCategory = ({ item: category }) => (
+  const renderCategory = ({ item: category }: { item: string }) => (
     <View style={styles.categoryContainer}>
       <Text style={styles.categoryTitle}>{category}</Text>
       <FlatList
