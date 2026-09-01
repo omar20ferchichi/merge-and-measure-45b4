@@ -4,7 +4,7 @@ import { RootState } from './store';
 interface RandomEventState {
   activeEvent: string | null;
   eventEffects: Record<string, any>;
-  eventHistory: Array<{ id: string; type: string; timestamp: number; resolved: boolean }>();
+  eventHistory: Array<{ id: string; type: string; timestamp: number; resolved: boolean }>;
 }
 
 interface GameReducerState {
@@ -47,7 +47,7 @@ export const gameSlice = createSlice({
       const event = state.randomEvents.eventHistory.find((e) => e.id === action.payload.id);
       if (event) {
         event.resolved = true;
-        state.random,Events.activeEvent = null;
+        state.randomEvents.activeEvent = null;
         state.randomEvents.eventEffects = {};
       }
     },
