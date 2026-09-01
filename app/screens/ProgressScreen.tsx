@@ -1,43 +1,62 @@
 import React, { useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import { View, Text, StyleSheet, Button, Alert } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import { updateMergeCount, addRandomEvent, setLoading, setError } from '../reducers/progressReducer';
-import { useFirebaseProgress } from '../services/firebaseService';
+import { setLevel, setScore, setMerges } from '../reducers/progressReducer';
+import { firebaseService } from '../services/firebaseService';
 
 const ProgressScreen: React.FC = () => {
-  const navigation = useNavigation();
   const dispatch = useDispatch();
-  const { progress, loading, error } = useFirebaseProgress();
+  const { level, score, merges, isLoading, error } = useSelector(
+    (state: { progress: ProgressState }) => state.progress
+  );
 
   useEffect(() => {
-    if (error) {
-      Alert.alert('Error', error);
-    }
-  }, [error]);
+    const loadProgress = async () => {
+      try {
+        const progress = await firebaseService.loadProgress();
+        if (progress) {
+          dispatch(setLevel(progress.level));
+          dispatch(setScore(progress.score));
+          dispatch(setMerges(progress.merges));
+        }
+      } catch (error) {
+        Alert.alert('Error', error.message || 'Failed to load progress');
+      }
+    };
 
-  const handleMerge = () => {
-    dispatch(updateMergeCount(progress?.mergeCount + 1 || 0));
-    navigation.navigate('MergeScreen');
+    loadProgress();
+  }, [dispatch]);
+
+  const handleSaveProgress = async () => {
+    try {
+      await firebaseService.saveProgress({ level, score, merges });
+      Alert.alert('Success', 'Progress saved successfully');
+    } catch (error) {
+      Alert.alert('Error', error.message || 'Failed to save progress');
+    }
   };
 
-  const handleRandomEvent = () => {
-    const randomEvent = `Random Event ${Math.floor(Math.random() * 100)}`;
-    dispatch(addRandomEvent(randomEvent));
+  const handleUpdateProgress = async () => {
+    try {
+      await firebaseService.updateProgress({ level, score, merges });
+      Alert.alert('Success', 'Progress updated successfully');
+    } catch (error) {
+      Alert.alert('Error', error.message || 'Failed to update progress');
+    }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Progress Tracker</Text>
-      <Text style={styles.progressText}>
-        Merges: {progress?.mergeCount || 0} | Difficulty: {progress?.difficultyLevel || 1}
-      </Text>
-      <TouchableOpacity style={styles.button} onPress={handleMerge}>
-        <Text style={styles.buttonText}>Merge Item</Text>
-      </TouchableOpacity>
-      <TouchableOpacity style={styles.button} onPress={handleRandomEvent}>
-        <Text style={styles.buttonText}>Trigger Random Event</Text>
-      </TouchableOpacity>
+      <Text style={styles.title}>Progress Screen</Text>
+      <View style={styles.progressContainer}>
+        <Text style={styles.progressText}>Level: {level}</Text>
+        <Text style={styles.progressText}>Score: {score}</Text>
+        <Text style={styles.progressText}>Merges: {merges}</Text>
+      </View>
+      <Button title="Save Progress" onPress={handleSaveProgress} />
+      <Button title="Update Progress" onPress={handleUpdateProgress} />
+      {isLoading && <Text>Loading...</Text>}
+      {error && <Text style={{ color: 'red' }}>{error}</Text>}
     </View>
   );
 };
@@ -51,21 +70,15 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 20
+  },
+  progressContainer: {
     marginBottom: 20
   },
   progressText: {
     fontSize: 18,
-    marginBottom: 20
-  },
-  button: {
-    backgroundColor: '#007AFF',
-    padding: 15,
-    borderRadius: 10,
     marginVertical: 10
-  },
-  buttonText: {
-    color: 'white',
-    fontSize: 16
   }
 });
 
