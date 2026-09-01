@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
-import { MergeItem } from '../../types';
+import { MergeItem } from '../types';
 
 interface SortMergeItemsByBonusProps {
   items: MergeItem[];
