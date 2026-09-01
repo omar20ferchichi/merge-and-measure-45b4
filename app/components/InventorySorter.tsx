@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
-import { MergeItem } from '../../types';
+import { MergeItem } from '../types';
 
 interface InventorySorterProps {
   items: MergeItem[];
@@ -44,7 +44,8 @@ const InventorySorter: React.FC<InventorySorterProps> = ({ items, onSort }) => {
         </TouchableOpacity>
         <TouchableOpacity
           style={sortBy === 'level' ? styles.sortButtonActive : styles.sortButton}
-          onPress={() => setSortBy('level')}\n        >
+          onPress={() => setSortBy('level')}
+        >
           <Text style={sortBy === 'level' ? styles.sortButtonTextActive : styles.sortButtonText}>Sort by Level</Text>
         </TouchableOpacity>
         <TouchableOpacity
