@@ -32,7 +32,7 @@ export const logRandomEventTriggered = () => {
 };
 
 export const logAdRewarded = () => {
-  log,analytics, 'ad_rewarded');
+  logEvent(analytics, 'ad_rewarded');
 };
 
 export const logAdInterstitialShown = () => {
