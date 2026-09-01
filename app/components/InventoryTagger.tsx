@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, FlatList, TouchableOpacity, StyleSheet, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useInventory } from '../../services/InventoryService';
 
 interface InventoryItem {
   id: string;
@@ -11,8 +10,22 @@ interface InventoryItem {
 }
 
 const InventoryTagger: React.FC = () => {
-  const { inventoryItems, toggleTag, refreshInventory } = useInventory();
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const toggleTag = (id: string) => {
+    setInventoryItems(items =>
+      items.map(item =>
+        item.id === id
+          ? { ...item, type: item.type === 'tagged' ? 'mergeable' : 'tagged' }
+          : item
+      )
+    );
+  };
+
+  const refreshInventory = () => {
+    setInventoryItems([]);
+  };
 
   const filteredItems = inventoryItems.filter(item =>
     item.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -60,7 +73,7 @@ const InventoryTagger: React.FC = () => {
       />
       <TouchableOpacity style={styles.refreshButton} onPress={refreshInventory}>
         <Ionicons name="refresh" size={24} color="#007AFF" />
-      </</TouchableOpacity>
+      </TouchableOpacity>
     </View>
   );
 };
