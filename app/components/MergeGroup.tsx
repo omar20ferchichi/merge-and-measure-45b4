@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Animated, Dimensions } from 'react-native';
 import { MergeItem } from './MergeItem';
-import { useMergeContext } from '../../context/MergeContext';
+import { useMergeContext } from '../context/MergeContext';
 
 const { width } = Dimensions.get('window');
 
